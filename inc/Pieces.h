@@ -49,6 +49,8 @@ public:
 
     bool isValidMove(const Position &move) const override;
 
+    bool CaptureBehavior(const Position& move);
+
 private:
     Position m_startingPosition;
 };

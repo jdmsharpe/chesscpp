@@ -42,3 +42,42 @@ Board::Board()
     m_pieces[0][k_pawnsPerSide + 6] = makePiece<Queen>(3, 7, Color::black);
     m_pieces[0][k_pawnsPerSide + 7] = makePiece<King>(4, 7, Color::black);
 }
+
+Piece *Board::getPieceAt(const Position &position)
+{
+    {
+        for (int i = 0; i < 2; ++i)
+        {
+            for (int j = 0; j < k_totalPieces / 2; ++j)
+            {
+                // Doesn't really feel optimal, but it does work
+                if (m_pieces[i][j]->getPosition() == position)
+                {
+                    return m_pieces[i][j].get();
+                }
+            }
+        }
+
+        return nullptr;
+    }
+}
+
+bool Board::HandleMove(const Position &start, const Position &end)
+{
+    auto *pieceToMove = getPieceAt(start);
+
+    // Most obvious case - check if requested move is in agreement with piece logic
+    if (!pieceToMove->isValidMove(end))
+    {
+        return false;
+    }
+    else
+    {
+        // // Pawns are allowed to move diagonally only if there's a piece to capture
+        // if (pieceToMove->getLetter() == 'p' && getPieceAt(end))
+        // {
+        //     int sign = pieceToMove->getColor() == Color::white ? -1 : 1;
+        //     if ((start.second == end.second + sign) && )
+        // }
+    }
+}

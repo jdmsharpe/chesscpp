@@ -60,16 +60,57 @@ TEST_F(TestBoard, PawnLogic) {
 }
 
 TEST_F(TestBoard, KnightLogic) {
-    auto* whiteKnight = m_board->getPieceAt({1, 0});
-    EXPECT_TRUE(whiteKnight->getLetter() == 'n');
-    EXPECT_TRUE(whiteKnight->getColor() == Color::white);
+    auto* blackKnight = m_board->getPieceAt({1, 7});
+    EXPECT_TRUE(blackKnight->getLetter() == 'n');
+    EXPECT_TRUE(blackKnight->getColor() == Color::black);
 
-    EXPECT_TRUE(whiteKnight->isValidMove({2, 2}));
-    EXPECT_TRUE(whiteKnight->isValidMove({0, 2}));
+    EXPECT_TRUE(blackKnight->isValidMove({2, 5}));
+    EXPECT_TRUE(blackKnight->isValidMove({0, 5}));
 
-    whiteKnight->setPosition({2, 2});
-    EXPECT_TRUE(whiteKnight->isValidMove({3, 4}));
+    blackKnight->setPosition({2, 5});
+    EXPECT_TRUE(blackKnight->isValidMove({3, 3}));
 }
+
+TEST_F(TestBoard, BishopLogic) {
+    auto* whiteBishop = m_board->getPieceAt({2, 0});
+    EXPECT_TRUE(whiteBishop->getLetter() == 'b');
+    EXPECT_TRUE(whiteBishop->getColor() == Color::white);
+
+    EXPECT_TRUE(whiteBishop->isValidMove({1, 1}));
+    EXPECT_TRUE(whiteBishop->isValidMove({3, 1}));
+    EXPECT_FALSE(whiteBishop->isValidMove({4, 1}));
+}
+
+TEST_F(TestBoard, RookLogic) {
+    auto* blackRook = m_board->getPieceAt({7, 7});
+    EXPECT_TRUE(blackRook->getLetter() == 'r');
+    EXPECT_TRUE(blackRook->getColor() == Color::black);
+
+    EXPECT_TRUE(blackRook->isValidMove({7, 0}));
+    EXPECT_TRUE(blackRook->isValidMove({0, 7}));
+    EXPECT_FALSE(blackRook->isValidMove({6, 6}));
+}
+
+TEST_F(TestBoard, QueenLogic) {
+    auto* whiteQueen = m_board->getPieceAt({3, 0});
+    EXPECT_TRUE(whiteQueen->getLetter() == 'q');
+    EXPECT_TRUE(whiteQueen->getColor() == Color::white);
+
+    EXPECT_TRUE(whiteQueen->isValidMove({2, 1}));
+    EXPECT_TRUE(whiteQueen->isValidMove({4, 1}));
+    EXPECT_FALSE(whiteQueen->isValidMove({5, 1}));
+}
+
+TEST_F(TestBoard, KingLogic) {
+    auto* blackKing = m_board->getPieceAt({4, 7});
+    EXPECT_TRUE(blackKing->getLetter() == 'k');
+    EXPECT_TRUE(blackKing->getColor() == Color::black);
+
+    EXPECT_TRUE(blackKing->isValidMove({4, 6}));
+    EXPECT_TRUE(blackKing->isValidMove({3, 6}));
+    EXPECT_FALSE(blackKing->isValidMove({3, 5}));
+}
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

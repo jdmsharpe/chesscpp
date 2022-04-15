@@ -47,27 +47,44 @@ bool Knight::isValidMove(const Position &move) const
 
 bool Bishop::isValidMove(const Position &move) const
 {
+    if ((move.first - m_position.first != move.second - m_position.second) &&
+        (move.first - m_position.first != -move.second + m_position.second))
+    {
+        return false;
+    }
 
     return Piece::isValidMove(move);
 }
 
 bool Rook::isValidMove(const Position &move) const
 {
-
+    if ((m_position.first != move.first) && (m_position.second != move.second))
+    {
+        return false;
+    }
 
     return Piece::isValidMove(move);
 }
 
 bool Queen::isValidMove(const Position &move) const
 {
-
+    // Combine cases from bishop and rook
+    if (((move.first - m_position.first != move.second - m_position.second) &&
+         (move.first - m_position.first != -move.second + m_position.second)) &&
+        ((m_position.first != move.first) && (m_position.second != move.second)))
+    {
+        return false;
+    }
 
     return Piece::isValidMove(move);
 }
 
 bool King::isValidMove(const Position &move) const
 {
-
+    if (std::abs(m_position.first - move.first) > 1 || std::abs(m_position.second - move.second) > 1)
+    {
+        return false;
+    }
 
     return Piece::isValidMove(move);
 }
