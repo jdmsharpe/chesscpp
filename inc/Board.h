@@ -10,9 +10,13 @@ public:
 
     ~Board() {}
 
+    void display();
+
     Piece *getPieceAt(const Position &position);
 
-    bool HandleMove(const Position& start, const Position& end);
+    void capturePiece(const Position& position);
+
+    bool checkMove(const Position& start, const Position& end);
 
 private:
     using Pieces = std::array<std::array<std::unique_ptr<Piece>, k_totalPieces / 2>, 2>;

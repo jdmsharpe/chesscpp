@@ -44,12 +44,10 @@ protected:
 class Pawn : public Piece
 {
 public:
-    Pawn(Position position, Color color) : Piece(position, color, 'p'), m_startingPosition(position) {}
+    Pawn(Position position, Color color) : Piece(position, color, color == Color::black ? 'p' : 'P'), m_startingPosition(position) {}
     ~Pawn() {}
 
     bool isValidMove(const Position &move) const override;
-
-    bool CaptureBehavior(const Position& move);
 
 private:
     Position m_startingPosition;
@@ -58,7 +56,7 @@ private:
 class Knight : public Piece
 {
 public:
-    Knight(Position position, Color color) : Piece(position, color, 'n') {}
+    Knight(Position position, Color color) : Piece(position, color, color == Color::black ? 'n' : 'N') {}
     ~Knight() {}
 
     bool isValidMove(const Position &move) const override;
@@ -67,7 +65,7 @@ public:
 class Bishop : public Piece
 {
 public:
-    Bishop(Position position, Color color) : Piece(position, color, 'b') {}
+    Bishop(Position position, Color color) : Piece(position, color, color == Color::black ? 'b' : 'B') {}
     ~Bishop() {}
 
     bool isValidMove(const Position &move) const override;
@@ -76,7 +74,7 @@ public:
 class Rook : public Piece
 {
 public:
-    Rook(Position position, Color color) : Piece(position, color, 'r') {}
+    Rook(Position position, Color color) : Piece(position, color, color == Color::black ? 'r' : 'R') {}
     ~Rook() {}
 
     bool isValidMove(const Position &move) const override;
@@ -85,7 +83,7 @@ public:
 class Queen : public Piece
 {
 public:
-    Queen(Position position, Color color) : Piece(position, color, 'q') {}
+    Queen(Position position, Color color) : Piece(position, color, color == Color::black ? 'q' : 'Q') {}
     ~Queen() {}
 
     bool isValidMove(const Position &move) const override;
@@ -94,7 +92,7 @@ public:
 class King : public Piece
 {
 public:
-    King(Position position, Color color) : Piece(position, color, 'k') {}
+    King(Position position, Color color) : Piece(position, color, color == Color::black ? 'k' : 'K') {}
     ~King() {}
 
     bool isValidMove(const Position &move) const override;

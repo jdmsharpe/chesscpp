@@ -1,6 +1,8 @@
 #include "Board.h"
+#include "Macros.h"
 
-namespace {
+namespace
+{
 
     constexpr int k_pawnsPerSide = k_totalPieces / 4;
 
@@ -43,6 +45,30 @@ Board::Board()
     m_pieces[0][k_pawnsPerSide + 7] = makePiece<King>(4, 7, Color::black);
 }
 
+void Board::display()
+{
+    for (int i = 0; i < 8; ++i)
+    {
+        for (int j = 0; j < 8; ++j)
+        {
+            const auto *piece = getPieceAt({j, i});
+            if (!piece)
+            {
+                std::cout << ".";
+            }
+            else
+            {
+                std::cout << piece->getLetter();
+            }
+
+            if (j == 7)
+            {
+                std::cout << std::endl;
+            }
+        }
+    }
+}
+
 Piece *Board::getPieceAt(const Position &position)
 {
     {
@@ -62,22 +88,88 @@ Piece *Board::getPieceAt(const Position &position)
     }
 }
 
-bool Board::HandleMove(const Position &start, const Position &end)
+void Board::capturePiece(const Position &position)
+{
+    {
+        for (int i = 0; i < 2; ++i)
+        {
+            for (int j = 0; j < k_totalPieces / 2; ++j)
+            {
+                if (m_pieces[i][j]->getPosition() == position)
+                {
+                    m_pieces[i][j].reset();
+                    m_pieces[i][j] = nullptr;
+                }
+            }
+        }
+    }
+}
+
+bool Board::checkMove(const Position &start, const Position &end)
 {
     auto *pieceToMove = getPieceAt(start);
+    auto *pieceAtDestination = getPieceAt(end);
+
+    // First see if the king is in check
+
+    // Castling case
+
+    // Pawns are allowed to move diagonally only if there's a piece to capture
+    // En passant case should go here too
+    if (dynamic_cast<Pawn *>(pieceToMove))
+    {
+        if (pieceAtDestination)
+        {
+            if (pieceToMove->getColor() != pieceAtDestination->getColor())
+            {
+                int sign = pieceToMove->getColor() == Color::white ? -1 : 1;
+                if ((start.second == end.second + sign) &&
+                    ((start.first == end.first + 1) ||
+                     (start.first == end.first - 1)))
+                {
+                    capturePiece(end);
+                    pieceToMove->setPosition(end);
+
+                    return true;
+                }
+            }
+        }
+    }
 
     // Most obvious case - check if requested move is in agreement with piece logic
     if (!pieceToMove->isValidMove(end))
     {
         return false;
     }
-    else
+
+    // Check for pieces blocking path
+    if (dynamic_cast<Bishop *>(pieceToMove))
     {
-        // // Pawns are allowed to move diagonally only if there's a piece to capture
-        // if (pieceToMove->getLetter() == 'p' && getPieceAt(end))
-        // {
-        //     int sign = pieceToMove->getColor() == Color::white ? -1 : 1;
-        //     if ((start.second == end.second + sign) && )
-        // }
     }
+
+    if (dynamic_cast<Rook *>(pieceToMove))
+    {
+    }
+
+    if (dynamic_cast<Queen *>(pieceToMove))
+    {
+    }
+
+    // General capture case
+    if (pieceAtDestination)
+    {
+        if (pieceToMove->getColor() != pieceAtDestination->getColor())
+        {
+            capturePiece(end);
+            pieceToMove->setPosition(end);
+
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    return true;
 }

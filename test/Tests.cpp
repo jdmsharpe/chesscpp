@@ -27,15 +27,16 @@ public:
     static Board *m_board;
 };
 
-Board* TestBoard::m_board = nullptr;
+Board *TestBoard::m_board = nullptr;
 
 TEST_F(TestBoard, ConstructDestruct)
 {
 }
 
-TEST_F(TestBoard, PawnLogic) {
+TEST_F(TestBoard, PawnLogic)
+{
     // For white
-    auto* whitePawn = m_board->getPieceAt({0, 1});
+    auto *whitePawn = m_board->getPieceAt({0, 1});
     EXPECT_TRUE(whitePawn->getLetter() == 'p');
     EXPECT_TRUE(whitePawn->getColor() == Color::white);
 
@@ -47,7 +48,7 @@ TEST_F(TestBoard, PawnLogic) {
     EXPECT_FALSE(whitePawn->isValidMove({0, 5}));
 
     // For black
-    auto* blackPawn = m_board->getPieceAt({0, 6});
+    auto *blackPawn = m_board->getPieceAt({0, 6});
     EXPECT_TRUE(blackPawn->getLetter() == 'p');
     EXPECT_TRUE(blackPawn->getColor() == Color::black);
 
@@ -59,8 +60,9 @@ TEST_F(TestBoard, PawnLogic) {
     EXPECT_FALSE(blackPawn->isValidMove({0, 2}));
 }
 
-TEST_F(TestBoard, KnightLogic) {
-    auto* blackKnight = m_board->getPieceAt({1, 7});
+TEST_F(TestBoard, KnightLogic)
+{
+    auto *blackKnight = m_board->getPieceAt({1, 7});
     EXPECT_TRUE(blackKnight->getLetter() == 'n');
     EXPECT_TRUE(blackKnight->getColor() == Color::black);
 
@@ -71,8 +73,9 @@ TEST_F(TestBoard, KnightLogic) {
     EXPECT_TRUE(blackKnight->isValidMove({3, 3}));
 }
 
-TEST_F(TestBoard, BishopLogic) {
-    auto* whiteBishop = m_board->getPieceAt({2, 0});
+TEST_F(TestBoard, BishopLogic)
+{
+    auto *whiteBishop = m_board->getPieceAt({2, 0});
     EXPECT_TRUE(whiteBishop->getLetter() == 'b');
     EXPECT_TRUE(whiteBishop->getColor() == Color::white);
 
@@ -81,8 +84,9 @@ TEST_F(TestBoard, BishopLogic) {
     EXPECT_FALSE(whiteBishop->isValidMove({4, 1}));
 }
 
-TEST_F(TestBoard, RookLogic) {
-    auto* blackRook = m_board->getPieceAt({7, 7});
+TEST_F(TestBoard, RookLogic)
+{
+    auto *blackRook = m_board->getPieceAt({7, 7});
     EXPECT_TRUE(blackRook->getLetter() == 'r');
     EXPECT_TRUE(blackRook->getColor() == Color::black);
 
@@ -91,8 +95,9 @@ TEST_F(TestBoard, RookLogic) {
     EXPECT_FALSE(blackRook->isValidMove({6, 6}));
 }
 
-TEST_F(TestBoard, QueenLogic) {
-    auto* whiteQueen = m_board->getPieceAt({3, 0});
+TEST_F(TestBoard, QueenLogic)
+{
+    auto *whiteQueen = m_board->getPieceAt({3, 0});
     EXPECT_TRUE(whiteQueen->getLetter() == 'q');
     EXPECT_TRUE(whiteQueen->getColor() == Color::white);
 
@@ -101,8 +106,9 @@ TEST_F(TestBoard, QueenLogic) {
     EXPECT_FALSE(whiteQueen->isValidMove({5, 1}));
 }
 
-TEST_F(TestBoard, KingLogic) {
-    auto* blackKing = m_board->getPieceAt({4, 7});
+TEST_F(TestBoard, KingLogic)
+{
+    auto *blackKing = m_board->getPieceAt({4, 7});
     EXPECT_TRUE(blackKing->getLetter() == 'k');
     EXPECT_TRUE(blackKing->getColor() == Color::black);
 
@@ -111,8 +117,16 @@ TEST_F(TestBoard, KingLogic) {
     EXPECT_FALSE(blackKing->isValidMove({3, 5}));
 }
 
+TEST_F(TestBoard, HandleMove)
+{
+    // Cheating a bit because we can!
+    auto *whitePawn = m_board->getPieceAt({4, 1});
+    whitePawn->setPosition({4, 5});
+    EXPECT_TRUE(m_board->checkMove({4, 5}, {5, 6}));
+}
 
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+int main(int argc, char **argv)
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
