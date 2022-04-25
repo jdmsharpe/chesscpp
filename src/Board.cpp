@@ -12,6 +12,13 @@ namespace
         return std::move(std::make_unique<T>(std::make_pair(xPos, yPos), color));
     }
 
+    // Credit where credit is due: https://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
+    template <typename T>
+    int sign(T val)
+    {
+        return (T(0) < val) - (val < T(0));
+    }
+
 } // namespace
 
 Board::Board()
@@ -47,7 +54,7 @@ Board::Board()
 
 void Board::display()
 {
-    for (int i = 0; i < 8; ++i)
+    for (int i = 7; i >= 0; --i)
     {
         for (int j = 0; j < 8; ++j)
         {
@@ -105,12 +112,22 @@ void Board::capturePiece(const Position &position)
     }
 }
 
-bool Board::checkMove(const Position &start, const Position &end)
+bool Board::checkMove(Color color, const Position &start, const Position &end)
 {
     auto *pieceToMove = getPieceAt(start);
     auto *pieceAtDestination = getPieceAt(end);
 
+    // Can't move pieces of the opposing color
+    if (pieceToMove->getColor() != color)
+    {
+        return false;
+    }
+
     // First see if the king is in check
+    // isKingInCheck(color);
+
+    // Then see if king will be in check
+    
 
     // Castling case
 
@@ -145,14 +162,37 @@ bool Board::checkMove(const Position &start, const Position &end)
     // Check for pieces blocking path
     if (dynamic_cast<Bishop *>(pieceToMove))
     {
+        if (isPieceBlockingBishop(start, end))
+        {
+            return false;
+        }
     }
 
     if (dynamic_cast<Rook *>(pieceToMove))
     {
+        if (isPieceBlockingRook(start, end))
+        {
+            return false;
+        }
     }
 
     if (dynamic_cast<Queen *>(pieceToMove))
     {
+        Position directionVector = getDirectionVector(start, end);
+        if (std::abs(directionVector.first) == std::abs(directionVector.second))
+        {
+            if (isPieceBlockingBishop(start, end))
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (isPieceBlockingRook(start, end))
+            {
+                return false;
+            }
+        }
     }
 
     // General capture case
@@ -172,4 +212,106 @@ bool Board::checkMove(const Position &start, const Position &end)
     }
 
     return true;
+}
+
+bool Board::isPieceBlockingBishop(const Position &start, const Position &end)
+{
+    Position directionVector = getDirectionVector(start, end);
+    // Direction vector components will be equal other than sign
+    int magnitude = std::abs(directionVector.first);
+    Piece *potentialPiece;
+
+    for (int i = 1; i <= magnitude; ++i)
+    {
+        potentialPiece = getPieceAt({start.first + (i * sign(directionVector.first)), start.second + (i * sign(directionVector.second))});
+
+        // Piece found
+        if (potentialPiece)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Board::isPieceBlockingRook(const Position &start, const Position &end)
+{
+    Position directionVector = getDirectionVector(start, end);
+    // One component of vector will be zero
+    int magnitude;
+    bool movingVertically;
+    Piece *potentialPiece;
+
+    if (directionVector.first == 0)
+    {
+        magnitude = std::abs(directionVector.second);
+        movingVertically = true;
+    }
+    else if (directionVector.second == 0)
+    {
+        magnitude = std::abs(directionVector.first);
+        movingVertically = false;
+    }
+
+    for (int i = 1; i <= magnitude; ++i)
+    {
+        if (movingVertically)
+        {
+            potentialPiece = getPieceAt({start.first, start.second + (i * sign(directionVector.second))});
+        }
+        else
+        {
+            potentialPiece = getPieceAt({start.first + (i * sign(directionVector.first)), start.second});
+        }
+
+        // Piece found
+        if (potentialPiece)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Board::isKingInCheck(Color color)
+{
+    // Don't like this hardcoding but it's convenient
+    const auto *king = (color == Color::white) ? m_pieces[1][k_pawnsPerSide + 7].get() : m_pieces[0][k_pawnsPerSide + 7].get();
+    const Position kingPosition = king->getPosition();
+
+    // Rook case
+    for (int i = 0; i < 8; ++i)
+    {
+        auto *potentialAttackerX = getPieceAt({kingPosition.first, i});
+        auto *potentialAttackerY = getPieceAt({i, kingPosition.second});
+
+        if (dynamic_cast<Rook *>(potentialAttackerX) || dynamic_cast<Queen *>(potentialAttackerX))
+        {
+            if (!isPieceBlockingRook(potentialAttackerX->getPosition(), kingPosition))
+            {
+                return true;
+            }
+        }
+
+        if (dynamic_cast<Rook *>(potentialAttackerY) || dynamic_cast<Queen *>(potentialAttackerY))
+        {
+            if (!isPieceBlockingRook(potentialAttackerY->getPosition(), kingPosition))
+            {
+                return true;
+            }
+        }
+    }
+
+    // // Bishop case
+    // for (int j = 0; j < 8; ++j)
+    // {
+    // }
+
+    // Knight case
+
+    // Pawn case
+
+    return false;
 }

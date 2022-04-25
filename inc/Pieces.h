@@ -6,7 +6,7 @@
 class Piece
 {
 public:
-    Piece(Position position, Color color, char&& letter) : m_position(position), m_color(color), m_letter(letter) {}
+    Piece(Position position, Color color, char&& letter) : m_position(position), m_startingPosition(position), m_color(color), m_letter(letter) {}
     virtual ~Piece() = default;
 
     virtual bool isValidMove(const Position &move) const;
@@ -37,6 +37,7 @@ public:
 
 protected:
     Position m_position;
+    Position m_startingPosition;
     Color m_color;
     const char m_letter;
 };
@@ -44,13 +45,10 @@ protected:
 class Pawn : public Piece
 {
 public:
-    Pawn(Position position, Color color) : Piece(position, color, color == Color::black ? 'p' : 'P'), m_startingPosition(position) {}
+    Pawn(Position position, Color color) : Piece(position, color, color == Color::black ? 'p' : 'P') {}
     ~Pawn() {}
 
     bool isValidMove(const Position &move) const override;
-
-private:
-    Position m_startingPosition;
 };
 
 class Knight : public Piece
