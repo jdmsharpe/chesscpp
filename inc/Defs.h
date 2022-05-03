@@ -9,10 +9,7 @@
 
 constexpr int k_totalPieces = 32;
 
-enum class Color {
-    black,
-    white 
-};
+enum class Color { black, white };
 
 typedef std::pair<int, int> Position;
 
