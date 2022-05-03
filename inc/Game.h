@@ -28,6 +28,8 @@ public:
 
   void explainMoveFormat() const;
 
+  std::string parseFen() const;
+
 private:
   bool m_inProgress = true;
   bool m_whiteToMove = true;

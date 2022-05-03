@@ -1,5 +1,7 @@
 #include "Game.h"
 
+#include <fstream>
+
 namespace {
 const std::regex legalMove = std::regex("[a-hA-H][1-8]");
 
@@ -13,6 +15,12 @@ const std::unordered_map<char, int> numberToIndex = {
     {'6', 5}, {'7', 6}, {'8', 7}
 
 };
+
+const std::string k_fenFilename = "../chess/inc/load.fen";
+
+const std::string k_delimiter1 = "/";
+const std::string k_delimiter2 = " ";
+
 } // namespace
 
 void Game::outputPlayerTurn() const {
@@ -54,4 +62,20 @@ void Game::explainMoveFormat() const {
             << "As an example, to move White's E2 pawn to E4, you can type "
                "either 'e2 e4' or 'E2 E4'."
             << std::endl;
+}
+
+std::string Game::parseFen() const {
+  std::string line = "";
+  std::ifstream ifs;
+
+  ifs.open(k_fenFilename);
+  if (ifs.is_open()) {
+    while (std::getline(ifs, line)) {
+      size_t position = 0;
+      std::string token = "";
+    }
+    ifs.close();
+  }
+
+  return "";
 }

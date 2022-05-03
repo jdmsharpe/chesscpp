@@ -109,7 +109,7 @@ TEST_F(TestBoard, HandleMove) {
   // Cheating a bit because we can!
   auto *whitePawn = m_board->getPieceAt({4, 1});
   whitePawn->setPosition({4, 5});
-  EXPECT_TRUE(m_board->checkMove(Color::white, {4, 5}, {5, 6}));
+  EXPECT_TRUE(m_board->isValidMove(Color::white, {4, 5}, {5, 6}));
 }
 
 int main(int argc, char **argv) {

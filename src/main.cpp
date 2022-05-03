@@ -1,15 +1,27 @@
 #include "Board.h"
 #include "Game.h"
 
+bool argumentPassed(char **start, char **end, const std::string &toFind) {
+  return std::find(start, end, toFind) != end;
+}
+
 int main(int argc, char **argv) {
   Board board;
   Game game;
+
+  if (argumentPassed(argv, argv + argc, "-l")) {
+    //   board.loadFromFen(game.parseFen(argv, argv + argc));
+    std::cout << game.parseFen();
+  }
 
   // Initialize containers for player inputs
   std::pair<std::string, std::string> input;
   std::pair<Position, Position> output;
 
   while (game.isInProgress()) {
+    // // Clear terminal (should investigate a better way to do this)
+    // std::cout << "\033[H\033[2J\033[3J";
+
     std::cout << board.isKingInCheck(game.whoseTurnIsIt()) << std::endl;
     board.display();
     game.outputPlayerTurn();
@@ -23,9 +35,6 @@ int main(int argc, char **argv) {
       // When move is complete, turn is over
       game.switchPlayers();
     }
-
-    // Clear terminal (should investigate a better way to do this)
-    std::cout << "\033[H\033[2J\033[3J";
   }
 
   return 0;
