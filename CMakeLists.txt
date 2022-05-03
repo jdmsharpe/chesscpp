@@ -11,6 +11,9 @@ file(GLOB SOURCES
     src/*.cpp
 )
 
+# Add FEN file
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/inc/load.fen DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 include_directories(inc)
 
 add_executable(chess ${SOURCES})
