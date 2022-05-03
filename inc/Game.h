@@ -2,7 +2,9 @@
 #define GAME_H
 
 #include <cctype>
+#include <regex>
 #include <string>
+#include <unordered_map>
 
 #include "Defs.h"
 

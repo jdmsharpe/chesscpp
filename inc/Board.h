@@ -16,9 +16,15 @@ public:
 
     void capturePiece(const Position &position);
 
-    bool checkMove(Color color, const Position &start, const Position &end);
+    bool isValidMove(Color color, const Position &start, const Position &end);
+
+    void movePiece(const Position &start, const Position &end);
+
+    bool isPieceAttacked(Color color, const Position& position);
 
     bool isKingInCheck(Color color);
+
+    bool willKingBeInCheck(Color color, const Position& start, const Position &end);
 
 private:
     inline Position getDirectionVector(const Position &start, const Position &end)

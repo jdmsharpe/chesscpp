@@ -13,6 +13,11 @@
     continue;                                                                  \
   }
 
+#define CONTINUE_IF_TRUE(bool)                                                 \
+  if (bool) {                                                                  \
+    continue;                                                                  \
+  }
+
 // Execute function if pointer is not null
 #define EXECUTE_IF_VALID(ptr, routine)                                         \
   if (ptr) {                                                                   \

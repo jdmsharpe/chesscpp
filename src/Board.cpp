@@ -6,6 +6,8 @@ namespace
 
     constexpr int k_pawnsPerSide = k_totalPieces / 4;
 
+    constexpr std::array<Position, 8> k_potentialKnightPositions = {{{2, 1}, {2, -1}, {-2, -1}, {-2, 1}, {1, 2}, {1, -2}, {-1, -2}, {-1, 2}}};
+
     template <class T>
     std::unique_ptr<T> makePiece(int xPos, int yPos, Color color)
     {
@@ -83,6 +85,7 @@ Piece *Board::getPieceAt(const Position &position)
         {
             for (int j = 0; j < k_totalPieces / 2; ++j)
             {
+                CONTINUE_IF_NULL(m_pieces[i][j]);
                 // Doesn't really feel optimal, but it does work
                 if (m_pieces[i][j]->getPosition() == position)
                 {
@@ -102,6 +105,7 @@ void Board::capturePiece(const Position &position)
         {
             for (int j = 0; j < k_totalPieces / 2; ++j)
             {
+                CONTINUE_IF_NULL(m_pieces[i][j]);
                 if (m_pieces[i][j]->getPosition() == position)
                 {
                     m_pieces[i][j].reset();
@@ -112,10 +116,16 @@ void Board::capturePiece(const Position &position)
     }
 }
 
-bool Board::checkMove(Color color, const Position &start, const Position &end)
+bool Board::isValidMove(Color color, const Position &start, const Position &end)
 {
     auto *pieceToMove = getPieceAt(start);
     auto *pieceAtDestination = getPieceAt(end);
+
+    // Nothing there
+    if (!pieceToMove)
+    {
+        return false;
+    }
 
     // Can't move pieces of the opposing color
     if (pieceToMove->getColor() != color)
@@ -124,10 +134,15 @@ bool Board::checkMove(Color color, const Position &start, const Position &end)
     }
 
     // First see if the king is in check
-    // isKingInCheck(color);
-
     // Then see if king will be in check
-    
+    if (isKingInCheck(color))
+    {
+        if (willKingBeInCheck(color, start, end))
+        {
+            return false;
+        }
+    }
+
 
     // Castling case
 
@@ -144,9 +159,6 @@ bool Board::checkMove(Color color, const Position &start, const Position &end)
                     ((start.first == end.first + 1) ||
                      (start.first == end.first - 1)))
                 {
-                    capturePiece(end);
-                    pieceToMove->setPosition(end);
-
                     return true;
                 }
             }
@@ -200,9 +212,6 @@ bool Board::checkMove(Color color, const Position &start, const Position &end)
     {
         if (pieceToMove->getColor() != pieceAtDestination->getColor())
         {
-            capturePiece(end);
-            pieceToMove->setPosition(end);
-
             return true;
         }
         else
@@ -212,6 +221,24 @@ bool Board::checkMove(Color color, const Position &start, const Position &end)
     }
 
     return true;
+}
+
+void Board::movePiece(const Position &start, const Position &end)
+{
+    auto *pieceToMove = getPieceAt(start);
+    auto *pieceAtDestination = getPieceAt(end);
+
+    // All cases should be checked at this point
+    // Capturing correctly is assumed
+    if (pieceAtDestination)
+    {
+        capturePiece(end);
+        pieceToMove->setPosition(end);
+    }
+    else
+    {
+        pieceToMove->setPosition(end);
+    }
 }
 
 bool Board::isPieceBlockingBishop(const Position &start, const Position &end)
@@ -226,7 +253,7 @@ bool Board::isPieceBlockingBishop(const Position &start, const Position &end)
         potentialPiece = getPieceAt({start.first + (i * sign(directionVector.first)), start.second + (i * sign(directionVector.second))});
 
         // Piece found
-        if (potentialPiece)
+        if (potentialPiece && potentialPiece->getPosition() != end)
         {
             return true;
         }
@@ -266,7 +293,185 @@ bool Board::isPieceBlockingRook(const Position &start, const Position &end)
         }
 
         // Piece found
-        if (potentialPiece)
+        if (potentialPiece && potentialPiece->getPosition() != end)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Board::isPieceAttacked(Color color, const Position& position) {
+    // Rook case
+    // Should be a way to refactor/combine these...
+    for (int i = 0; i < 8; ++i)
+    {
+        Position positionToCheck = {position.first, i};
+        auto *potentialAttackerX = getPieceAt(positionToCheck);
+
+        CONTINUE_IF_NULL(potentialAttackerX);
+
+        // Don't check own position
+        CONTINUE_IF_TRUE(position == positionToCheck);
+
+        if (dynamic_cast<Rook *>(potentialAttackerX) || dynamic_cast<Queen *>(potentialAttackerX))
+        {
+            // Don't count own pieces
+            CONTINUE_IF_TRUE(potentialAttackerX->getColor() == color);
+
+            if (!isPieceBlockingRook(potentialAttackerX->getPosition(), position))
+            {
+                return true;
+            }
+        }
+    }
+
+    for (int i = 0; i < 8; ++i)
+    {
+        Position positionToCheck = {i, position.second};
+        auto *potentialAttackerY = getPieceAt(positionToCheck);
+
+        CONTINUE_IF_NULL(potentialAttackerY);
+
+        CONTINUE_IF_TRUE(position == positionToCheck);
+
+        if (dynamic_cast<Rook *>(potentialAttackerY) || dynamic_cast<Queen *>(potentialAttackerY))
+        {
+            CONTINUE_IF_TRUE(potentialAttackerY->getColor() == color);   
+
+            if (!isPieceBlockingRook(potentialAttackerY->getPosition(), position))
+            {
+                return true;
+            }
+        }
+    }
+
+    // Bishop case
+    // The case for refactoring the rook case doubly applies here
+    for (int i = 1; i < 8; ++i)
+    {
+        if (position.first + i > 7 || position.second + i > 7) {
+            continue;
+        }
+
+        auto *potentialAttackerNortheast = getPieceAt({position.first + i, position.second + i});
+
+        CONTINUE_IF_NULL(potentialAttackerNortheast);
+
+        CONTINUE_IF_TRUE(potentialAttackerNortheast->getColor() == color);
+
+        if (dynamic_cast<Bishop *>(potentialAttackerNortheast) ||
+            dynamic_cast<Queen *>(potentialAttackerNortheast))
+        {
+            if (!isPieceBlockingBishop(potentialAttackerNortheast->getPosition(), position))
+            {
+                {
+                    return true;
+                }
+            }
+        }
+    }
+
+    for (int i = 1; i < 8; ++i)
+    {
+        if (position.first - i < 0 || position.second + i > 7)
+        {
+            continue;
+        }
+
+        auto *potentialAttackerNorthwest = getPieceAt({position.first - i, position.second + i});
+
+        CONTINUE_IF_NULL(potentialAttackerNorthwest);
+
+        CONTINUE_IF_TRUE(potentialAttackerNorthwest->getColor() == color);
+
+        if (dynamic_cast<Bishop *>(potentialAttackerNorthwest) ||
+            dynamic_cast<Queen *>(potentialAttackerNorthwest))
+        {
+            if (!isPieceBlockingBishop(potentialAttackerNorthwest->getPosition(), position))
+            {
+                {
+                    return true;
+                }
+            }
+        }
+    }
+
+    for (int i = 1; i < 8; ++i)
+    {
+        if (position.first + i > 7 || position.second - i < 0)
+        {
+            continue;
+        }
+
+        auto *potentialAttackerSoutheast = getPieceAt({position.first + i, position.second - i});
+
+        CONTINUE_IF_NULL(potentialAttackerSoutheast);
+
+        CONTINUE_IF_TRUE(potentialAttackerSoutheast->getColor() == color);
+
+        if (dynamic_cast<Bishop *>(potentialAttackerSoutheast) ||
+            dynamic_cast<Queen *>(potentialAttackerSoutheast))
+        {
+            if (!isPieceBlockingBishop(potentialAttackerSoutheast->getPosition(), position))
+            {
+                {
+                    return true;
+                }
+            }
+        }
+    }
+
+    for (int i = 1; i < 8; ++i)
+    {
+        if (position.first - i < 0 || position.second - i < 0)
+        {
+            continue;
+        }
+
+        auto *potentialAttackerSouthwest = getPieceAt({position.first - i, position.second - i});
+
+        CONTINUE_IF_NULL(potentialAttackerSouthwest);
+
+        CONTINUE_IF_TRUE(potentialAttackerSouthwest->getColor() == color);
+
+        if (dynamic_cast<Bishop *>(potentialAttackerSouthwest) ||
+            dynamic_cast<Queen *>(potentialAttackerSouthwest))
+        {
+            if (!isPieceBlockingBishop(potentialAttackerSouthwest->getPosition(), position))
+            {
+                {
+                    return true;
+                }
+            }
+        }
+    }
+
+    // Knight case
+    for (int i = 0; i < k_potentialKnightPositions.size(); ++i)
+    {
+        auto *potentialKnightAttacker = getPieceAt({position.first + k_potentialKnightPositions[i].first, position.second + k_potentialKnightPositions[i].second});
+
+        CONTINUE_IF_NULL(potentialKnightAttacker);
+
+        CONTINUE_IF_TRUE(potentialKnightAttacker->getColor() == color);
+
+        if (dynamic_cast<Knight *>(potentialKnightAttacker))
+        {
+            return true;
+        }
+    }
+
+    // Pawn case
+    {
+        int sign = (color == Color::white) ? 1 : -1;
+
+        auto *potentialAttackerRight = getPieceAt({position.first + 1, position.second + sign});
+        auto *potentialAttackerLeft = getPieceAt({position.first - 1, position.second + sign});
+
+        if ((dynamic_cast<Pawn *>(potentialAttackerRight) && (potentialAttackerRight->getColor() != color)) ||
+            (dynamic_cast<Pawn *>(potentialAttackerLeft) && (potentialAttackerLeft->getColor() != color)))
         {
             return true;
         }
@@ -279,39 +484,19 @@ bool Board::isKingInCheck(Color color)
 {
     // Don't like this hardcoding but it's convenient
     const auto *king = (color == Color::white) ? m_pieces[1][k_pawnsPerSide + 7].get() : m_pieces[0][k_pawnsPerSide + 7].get();
-    const Position kingPosition = king->getPosition();
 
-    // Rook case
-    for (int i = 0; i < 8; ++i)
+    return isPieceAttacked(color, king->getPosition());
+}
+
+bool Board::willKingBeInCheck(Color color, const Position &start, const Position &end)
+{
+    if (dynamic_cast<King *>(getPieceAt(start)))
     {
-        auto *potentialAttackerX = getPieceAt({kingPosition.first, i});
-        auto *potentialAttackerY = getPieceAt({i, kingPosition.second});
-
-        if (dynamic_cast<Rook *>(potentialAttackerX) || dynamic_cast<Queen *>(potentialAttackerX))
-        {
-            if (!isPieceBlockingRook(potentialAttackerX->getPosition(), kingPosition))
-            {
-                return true;
-            }
-        }
-
-        if (dynamic_cast<Rook *>(potentialAttackerY) || dynamic_cast<Queen *>(potentialAttackerY))
-        {
-            if (!isPieceBlockingRook(potentialAttackerY->getPosition(), kingPosition))
-            {
-                return true;
-            }
-        }
+        // See if this move gets king out of check
+        return isPieceAttacked(color, end);
     }
 
-    // // Bishop case
-    // for (int j = 0; j < 8; ++j)
-    // {
-    // }
-
-    // Knight case
-
-    // Pawn case
-
-    return false;
+    // TODO: This misses the case to check if the move blocks check
+    // Think of a good way to add this in without overwriting board state
+    return isKingInCheck(color);
 }
