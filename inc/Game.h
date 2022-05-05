@@ -27,9 +27,17 @@ public:
 
   void explainMoveFormat() const;
 
-  BoardLayout parseFen() const;
+  BoardLayout parseFen();
 
 private:
+  inline void setTurn(Color color) {
+    if (color == Color::black) {
+      m_whiteToMove = false;
+    } else {
+      m_whiteToMove = true;
+    }
+  }
+
   bool m_inProgress = true;
   bool m_whiteToMove = true;
 };

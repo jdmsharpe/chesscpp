@@ -21,6 +21,10 @@ const std::unordered_map<char, int> numberToIndex = {
 
 const std::string k_fenFilename = "../chess/inc/load.fen";
 
+// Used for correctly parsing FEN strings
+constexpr int k_whoseTurnIndex = 8;
+
+
 } // namespace
 
 void Game::outputPlayerTurn() const {
@@ -64,7 +68,7 @@ void Game::explainMoveFormat() const {
             << std::endl;
 }
 
-BoardLayout Game::parseFen() const {
+BoardLayout Game::parseFen() {
   std::string line = "";
   std::ifstream ifs;
   BoardLayout layout;
@@ -89,7 +93,7 @@ BoardLayout Game::parseFen() const {
 
       for (int i = 0; i < static_cast<int>(tokens.size()); ++i) {
         // First parse the board
-        if (i < 8) {
+        if (i < k_whoseTurnIndex) {
           for (int j = 0; j < static_cast<int>(tokens[i].size()); ++j) {
             const char token = tokens[i][j];
             currentPos = {k, 7 - i};
@@ -140,6 +144,11 @@ BoardLayout Game::parseFen() const {
                 k = 0;
             } 
           }
+        }
+
+        if (i == k_whoseTurnIndex) {
+            layout.whoseTurn = (tokens[i] == "w") ? Color::white : Color::black;
+            setTurn(layout.whoseTurn);
         }
       }
     }
