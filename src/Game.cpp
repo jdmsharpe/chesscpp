@@ -141,8 +141,6 @@ BoardLayout Game::parseFen() {
               k += token - '0';
             }
 
-            std::cout << k << " " << token << std::endl;
-
             if (j == static_cast<int>(tokens[i].size() - 1)) {
                 k = 0;
             }
