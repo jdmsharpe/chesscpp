@@ -10,8 +10,9 @@ int main(int argc, char **argv) {
   Game game;
 
   if (argumentPassed(argv, argv + argc, "-l")) {
-    //   board.loadFromFen(game.parseFen(argv, argv + argc));
-    std::cout << game.parseFen();
+    board.loadFromFen(game.parseFen());
+  } else {
+    board.loadGame();
   }
 
   // Initialize containers for player inputs

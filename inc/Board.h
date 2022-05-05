@@ -5,9 +5,13 @@
 
 class Board {
 public:
-  Board();
+  Board() {}
 
   ~Board() {}
+
+  void loadGame();
+
+  void loadFromFen(const BoardLayout& layout);
 
   void display();
 

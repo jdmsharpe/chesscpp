@@ -9,8 +9,8 @@ constexpr std::array<Position, 8> k_potentialKnightPositions = {
     {{2, 1}, {2, -1}, {-2, -1}, {-2, 1}, {1, 2}, {1, -2}, {-1, -2}, {-1, 2}}};
 
 template <class T>
-std::unique_ptr<T> makePiece(int xPos, int yPos, Color color) {
-  return std::move(std::make_unique<T>(std::make_pair(xPos, yPos), color));
+std::unique_ptr<T> makePiece(Color color, const Position& position) {
+  return std::move(std::make_unique<T>(position, color));
 }
 
 // Credit where credit is due:
@@ -19,32 +19,62 @@ template <typename T> int sign(T val) { return (T(0) < val) - (val < T(0)); }
 
 } // namespace
 
-Board::Board() {
+void Board::loadGame() {
   for (int i = 0; i < k_pawnsPerSide; ++i) {
-    m_pieces[1][i] = makePiece<Pawn>(i, 1, Color::white);
+    m_pieces[1][i] = makePiece<Pawn>(Color::white, {i, 1});
   }
 
-  m_pieces[1][k_pawnsPerSide] = makePiece<Rook>(0, 0, Color::white);
-  m_pieces[1][k_pawnsPerSide + 1] = makePiece<Rook>(7, 0, Color::white);
-  m_pieces[1][k_pawnsPerSide + 2] = makePiece<Knight>(1, 0, Color::white);
-  m_pieces[1][k_pawnsPerSide + 3] = makePiece<Knight>(6, 0, Color::white);
-  m_pieces[1][k_pawnsPerSide + 4] = makePiece<Bishop>(2, 0, Color::white);
-  m_pieces[1][k_pawnsPerSide + 5] = makePiece<Bishop>(5, 0, Color::white);
-  m_pieces[1][k_pawnsPerSide + 6] = makePiece<Queen>(3, 0, Color::white);
-  m_pieces[1][k_pawnsPerSide + 7] = makePiece<King>(4, 0, Color::white);
+  m_pieces[1][k_pawnsPerSide] = makePiece<Rook>(Color::white, {0, 0});
+  m_pieces[1][k_pawnsPerSide + 1] = makePiece<Rook>(Color::white, {7, 0});
+  m_pieces[1][k_pawnsPerSide + 2] = makePiece<Knight>(Color::white, {1, 0});
+  m_pieces[1][k_pawnsPerSide + 3] = makePiece<Knight>(Color::white, {6, 0});
+  m_pieces[1][k_pawnsPerSide + 4] = makePiece<Bishop>(Color::white, {2, 0});
+  m_pieces[1][k_pawnsPerSide + 5] = makePiece<Bishop>(Color::white, {5, 0});
+  m_pieces[1][k_pawnsPerSide + 6] = makePiece<Queen>(Color::white, {3, 0});
+  m_pieces[1][k_pawnsPerSide + 7] = makePiece<King>(Color::white, {4, 0});
 
   for (int i = 0; i < k_pawnsPerSide; ++i) {
-    m_pieces[0][i] = makePiece<Pawn>(i, 6, Color::black);
+    m_pieces[0][i] = makePiece<Pawn>(Color::black, {i, 6});
   }
 
-  m_pieces[0][k_pawnsPerSide] = makePiece<Rook>(0, 7, Color::black);
-  m_pieces[0][k_pawnsPerSide + 1] = makePiece<Rook>(7, 7, Color::black);
-  m_pieces[0][k_pawnsPerSide + 2] = makePiece<Knight>(1, 7, Color::black);
-  m_pieces[0][k_pawnsPerSide + 3] = makePiece<Knight>(6, 7, Color::black);
-  m_pieces[0][k_pawnsPerSide + 4] = makePiece<Bishop>(2, 7, Color::black);
-  m_pieces[0][k_pawnsPerSide + 5] = makePiece<Bishop>(5, 7, Color::black);
-  m_pieces[0][k_pawnsPerSide + 6] = makePiece<Queen>(3, 7, Color::black);
-  m_pieces[0][k_pawnsPerSide + 7] = makePiece<King>(4, 7, Color::black);
+  m_pieces[0][k_pawnsPerSide] = makePiece<Rook>(Color::black, {0, 7});
+  m_pieces[0][k_pawnsPerSide + 1] = makePiece<Rook>(Color::black, {7, 7});
+  m_pieces[0][k_pawnsPerSide + 2] = makePiece<Knight>(Color::black, {1, 7});
+  m_pieces[0][k_pawnsPerSide + 3] = makePiece<Knight>(Color::black, {6, 7});
+  m_pieces[0][k_pawnsPerSide + 4] = makePiece<Bishop>(Color::black, {2, 7});
+  m_pieces[0][k_pawnsPerSide + 5] = makePiece<Bishop>(Color::black, {5, 7});
+  m_pieces[0][k_pawnsPerSide + 6] = makePiece<Queen>(Color::black, {3, 7});
+  m_pieces[0][k_pawnsPerSide + 7] = makePiece<King>(Color::black, {4, 7});
+}
+
+void Board::loadFromFen(const BoardLayout &layout) {
+  // Wow, templated lambdas! C++20 is hot stuff
+  auto createPiecesFromContainer =
+      [&]<class T>(const PieceContainer &container, int offset) {
+        int blackCounter = 0;
+        int whiteCounter = 0;
+
+        for (size_t i = 0; i < container.size(); ++i) {
+          const auto piece = container[i];
+
+          if (piece.first == Color::black) {
+            m_pieces[0][blackCounter + offset] = makePiece<T>(piece.first, piece.second);
+            ++blackCounter;
+          } else if (piece.first == Color::white) {
+            m_pieces[1][whiteCounter + offset] = makePiece<T>(piece.first, piece.second);
+            ++whiteCounter;
+          }
+        }
+      };
+
+  // I have to be real with you, though, this syntax is an abomination
+  // Even Intellisense is mad about it
+  createPiecesFromContainer.template operator()<Pawn>(layout.pawns, 0);
+  createPiecesFromContainer.template operator()<Rook>(layout.rooks, k_pawnsPerSide);
+  createPiecesFromContainer.template operator()<Knight>(layout.knights, k_pawnsPerSide + 2);
+  createPiecesFromContainer.template operator()<Bishop>(layout.bishops, k_pawnsPerSide + 4);
+  createPiecesFromContainer.template operator()<Queen>(layout.queens, k_pawnsPerSide + 6);
+  createPiecesFromContainer.template operator()<King>(layout.kings, k_pawnsPerSide + 7);
 }
 
 void Board::display() {

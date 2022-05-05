@@ -3,7 +3,6 @@
 
 #include <cctype>
 #include <regex>
-#include <string>
 #include <unordered_map>
 
 #include "Defs.h"
@@ -28,7 +27,7 @@ public:
 
   void explainMoveFormat() const;
 
-  std::string parseFen() const;
+  BoardLayout parseFen() const;
 
 private:
   bool m_inProgress = true;
