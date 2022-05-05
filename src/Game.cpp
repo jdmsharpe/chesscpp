@@ -88,10 +88,9 @@ BoardLayout Game::parseFen() {
       // Offset for black - in FEN format, black comes first
       Position currentPos = {0, 7};
 
-      // Additional variable to keep track of inner loop board position
-      int k = 0;
-
       for (int i = 0; i < static_cast<int>(tokens.size()); ++i) {
+        // Additional variable to keep track of inner loop board position
+        int k = 0;
         // First parse the board
         if (i < k_whoseTurnIndex) {
           for (int j = 0; j < static_cast<int>(tokens[i].size()); ++j) {
@@ -100,21 +99,17 @@ BoardLayout Game::parseFen() {
             Color color;
 
             // Check if the character is a letter or number
-            // If it's a letter, it's a piece, and color can be identified by case
-            // If it's a number, it specifies how many spaces until the next piece
+            // If it's a letter, it's a piece, and color can be identified by
+            // case If it's a number, it specifies how many spaces until the
+            // next piece
             if (isalpha(token)) {
-                if (isupper(token)) {
-                    color = Color::white;
-                } else if (islower(token)) {
-                    color = Color::black;
-                } else {
-                    // Error parsing FEN
-                }
-            } else if (isdigit(token)) {
-                k += static_cast<int>(token);
-            }
+              if (isupper(token)) {
+                color = Color::white;
+              } else if (islower(token)) {
+                color = Color::black;
+              }
 
-            if (token == 'p' || token == 'P') {
+              if (token == 'p' || token == 'P') {
                 layout.pawns.push_back({color, currentPos});
             }
 
@@ -140,9 +135,17 @@ BoardLayout Game::parseFen() {
 
             ++k;
 
+            } else if (isdigit(token)) {
+              // The fact that static_casting to int doesn't work here
+              // is quite cursed. I guess this is what C is like
+              k += token - '0';
+            }
+
+            std::cout << k << " " << token << std::endl;
+
             if (j == static_cast<int>(tokens[i].size() - 1)) {
                 k = 0;
-            } 
+            }
           }
         }
 
