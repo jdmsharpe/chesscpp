@@ -30,6 +30,8 @@ public:
   bool willKingBeInCheck(Color color, const Position &start,
                          const Position &end);
 
+  bool canKingCastle(Color color);
+
 private:
   inline Position getDirectionVector(const Position &start,
                                      const Position &end) {
@@ -40,9 +42,13 @@ private:
 
   bool isPieceBlockingRook(const Position &start, const Position &end);
 
+  void setKingCastleStatus(Color color, CastleSide side);
+
   using Pieces =
       std::array<std::array<std::unique_ptr<Piece>, k_totalPieces / 2>, 2>;
   Pieces m_pieces;
+
+  CastleStatus m_castleStatus;
 };
 
 #endif // BOARD_H

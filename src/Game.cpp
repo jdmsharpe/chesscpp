@@ -5,25 +5,27 @@
 #include <sstream>
 
 namespace {
-const std::regex legalMove = std::regex("[a-hA-H][1-8]");
-const std::regex delimiters = std::regex("[/ +]");
-const std::regex numbers = std::regex("[1-8]");
+const std::regex k_legalMove = std::regex("[a-hA-H][1-8]");
+const std::regex k_delimiters = std::regex("[/ +]");
+const std::regex k_numbers = std::regex("[1-8]");
 
-const std::unordered_map<char, int> letterToIndex = {
+const std::unordered_map<char, int> k_letterToIndex = {
     {'a', 0}, {'b', 1}, {'c', 2}, {'d', 3}, {'e', 4}, {'f', 5},
     {'g', 6}, {'h', 7}, {'A', 0}, {'B', 1}, {'C', 2}, {'D', 3},
     {'E', 4}, {'F', 5}, {'G', 6}, {'H', 7}};
 
-const std::unordered_map<char, int> numberToIndex = {
-    {'1', 0}, {'2', 1}, {'3', 2}, {'4', 3}, {'5', 4},
-    {'6', 5}, {'7', 6}, {'8', 7}
-};
+const std::unordered_map<char, int> k_numberToIndex = {
+    {'1', 0}, {'2', 1}, {'3', 2}, {'4', 3},
+    {'5', 4}, {'6', 5}, {'7', 6}, {'8', 7}};
 
 const std::string k_fenFilename = "../chess/inc/load.fen";
 
 // Used for correctly parsing FEN strings
 constexpr int k_whoseTurnIndex = 8;
-
+constexpr int k_castlingIndex = 9;
+constexpr int k_enPassantIndex = 10;
+constexpr int k_halfMoveIndex = 11;
+constexpr int k_turnIndex = 12;
 
 } // namespace
 
@@ -38,17 +40,17 @@ bool Game::parseMove(const std::pair<std::string, std::string> input,
                      std::pair<Position, Position> &output) const {
   // Sanity check
   if (input.first.length() != 2 || input.second.length() != 2 ||
-      !std::regex_search(input.first, legalMove) ||
-      !std::regex_search(input.second, legalMove)) {
+      !std::regex_search(input.first, k_legalMove) ||
+      !std::regex_search(input.second, k_legalMove)) {
     std::cout << "Error: inputs were invalid." << std::endl;
     explainMoveFormat();
     return false;
   }
 
-  output.first = {letterToIndex.at(input.first[0]),
-                  numberToIndex.at(input.first[1])};
-  output.second = {letterToIndex.at(input.second[0]),
-                   numberToIndex.at(input.second[1])};
+  output.first = {k_letterToIndex.at(input.first[0]),
+                  k_numberToIndex.at(input.first[1])};
+  output.second = {k_letterToIndex.at(input.second[0]),
+                   k_numberToIndex.at(input.second[1])};
 
   return true;
 }
@@ -79,7 +81,7 @@ BoardLayout Game::parseFen() {
       // This is honestly kind of insane... it's only two lines and it uses
       // multiple delimiters! Full credit to darune in
       // https://stackoverflow.com/questions/7621727/split-a-string-into-words-by-multiple-delimiters
-      std::sregex_token_iterator first{line.begin(), line.end(), delimiters,
+      std::sregex_token_iterator first{line.begin(), line.end(), k_delimiters,
                                        -1},
           last;
       std::vector<std::string> tokens = {first, last};
@@ -99,8 +101,8 @@ BoardLayout Game::parseFen() {
             Color color;
 
             // Check if the character is a letter or number
-            // If it's a letter, it's a piece, and color can be identified by
-            // case If it's a number, it specifies how many spaces until the
+            // If it's a letter, it's a piece, and color derives from case
+            // If it's a number, it specifies how many spaces until the
             // next piece
             if (isalpha(token)) {
               if (isupper(token)) {
@@ -111,29 +113,29 @@ BoardLayout Game::parseFen() {
 
               if (token == 'p' || token == 'P') {
                 layout.pawns.push_back({color, currentPos});
-            }
+              }
 
-            if (token == 'n' || token == 'N') {
+              if (token == 'n' || token == 'N') {
                 layout.knights.push_back({color, currentPos});
-            }
+              }
 
-            if (token == 'b' || token == 'B') {
+              if (token == 'b' || token == 'B') {
                 layout.bishops.push_back({color, currentPos});
-            }
+              }
 
-            if (token == 'r' || token == 'R') {
+              if (token == 'r' || token == 'R') {
                 layout.rooks.push_back({color, currentPos});
-            }
+              }
 
-            if (token == 'q' || token == 'Q') {
+              if (token == 'q' || token == 'Q') {
                 layout.queens.push_back({color, currentPos});
-            }
+              }
 
-            if (token == 'k' || token == 'K') {
+              if (token == 'k' || token == 'K') {
                 layout.kings.push_back({color, currentPos});
-            }
+              }
 
-            ++k;
+              ++k;
 
             } else if (isdigit(token)) {
               // The fact that static_casting to int doesn't work here
@@ -142,14 +144,46 @@ BoardLayout Game::parseFen() {
             }
 
             if (j == static_cast<int>(tokens[i].size() - 1)) {
-                k = 0;
+              k = 0;
             }
+
+            continue;
           }
         }
 
         if (i == k_whoseTurnIndex) {
-            layout.whoseTurn = (tokens[i] == "w") ? Color::white : Color::black;
-            setTurn(layout.whoseTurn);
+          layout.whoseTurn = (tokens[i] == "w") ? Color::white : Color::black;
+          setTurn(layout.whoseTurn);
+          continue;
+        }
+
+        if (i == k_castlingIndex) {
+          if (tokens[i] == "-") {
+            // Nothing to record
+            continue;
+          }
+        }
+
+        if (i == k_enPassantIndex) {
+          if (tokens[i] == "-") {
+            continue;
+          }
+        }
+
+        if (i == k_halfMoveIndex) {
+          size_t halfMove = 0;
+          if (sscanf(tokens[i].c_str(), "%zu", &halfMove) == 1) {
+            layout.halfMoveNum = halfMove;
+            continue;
+          }
+        }
+
+        if (i == k_turnIndex) {
+          size_t turn = 0;
+          if (sscanf(tokens[i].c_str(), "%zu", &turn) == 1) {
+            layout.turnNum = turn;
+            continue;
+          }
         }
       }
     }
