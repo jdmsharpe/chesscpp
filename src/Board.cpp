@@ -4,12 +4,17 @@
 namespace {
 
 constexpr int k_pawnsPerSide = k_totalPieces / 4;
+// Variables for indexing castle status member
+constexpr int k_blackKingsideIndex = 0;
+constexpr int k_blackQueensideIndex = 1;
+constexpr int k_whiteKingsideIndex = 2;
+constexpr int k_whiteQueensideIndex = 3;
 
 constexpr std::array<Position, 8> k_potentialKnightPositions = {
     {{2, 1}, {2, -1}, {-2, -1}, {-2, 1}, {1, 2}, {1, -2}, {-1, -2}, {-1, 2}}};
 
 template <class T>
-std::unique_ptr<T> makePiece(Color color, const Position& position) {
+std::unique_ptr<T> makePiece(Color color, const Position &position) {
   return std::move(std::make_unique<T>(position, color));
 }
 
@@ -45,36 +50,45 @@ void Board::loadGame() {
   m_pieces[0][k_pawnsPerSide + 5] = makePiece<Bishop>(Color::black, {5, 7});
   m_pieces[0][k_pawnsPerSide + 6] = makePiece<Queen>(Color::black, {3, 7});
   m_pieces[0][k_pawnsPerSide + 7] = makePiece<King>(Color::black, {4, 7});
+
+  m_castleStatus.set();
 }
 
 void Board::loadFromFen(const BoardLayout &layout) {
   // Wow, templated lambdas! C++20 is hot stuff
-  auto createPiecesFromContainer =
-      [&]<class T>(const PieceContainer &container, int offset) {
-        int blackCounter = 0;
-        int whiteCounter = 0;
+  auto createPiecesFromContainer = [&]<class T>(const PieceContainer &container,
+                                                int offset) {
+    int blackCounter = 0;
+    int whiteCounter = 0;
 
-        for (size_t i = 0; i < container.size(); ++i) {
-          const auto piece = container[i];
+    for (size_t i = 0; i < container.size(); ++i) {
+      const auto piece = container[i];
 
-          if (piece.first == Color::black) {
-            m_pieces[0][blackCounter + offset] = makePiece<T>(piece.first, piece.second);
-            ++blackCounter;
-          } else if (piece.first == Color::white) {
-            m_pieces[1][whiteCounter + offset] = makePiece<T>(piece.first, piece.second);
-            ++whiteCounter;
-          }
-        }
-      };
+      if (piece.first == Color::black) {
+        m_pieces[0][blackCounter + offset] =
+            makePiece<T>(piece.first, piece.second);
+        ++blackCounter;
+      } else if (piece.first == Color::white) {
+        m_pieces[1][whiteCounter + offset] =
+            makePiece<T>(piece.first, piece.second);
+        ++whiteCounter;
+      }
+    }
+  };
 
   // I have to be real with you, though, this syntax is an abomination
   // Even Intellisense is mad about it
   createPiecesFromContainer.template operator()<Pawn>(layout.pawns, 0);
-  createPiecesFromContainer.template operator()<Rook>(layout.rooks, k_pawnsPerSide);
-  createPiecesFromContainer.template operator()<Knight>(layout.knights, k_pawnsPerSide + 2);
-  createPiecesFromContainer.template operator()<Bishop>(layout.bishops, k_pawnsPerSide + 4);
-  createPiecesFromContainer.template operator()<Queen>(layout.queens, k_pawnsPerSide + 6);
-  createPiecesFromContainer.template operator()<King>(layout.kings, k_pawnsPerSide + 7);
+  createPiecesFromContainer.template operator()<Rook>(layout.rooks,
+                                                      k_pawnsPerSide);
+  createPiecesFromContainer.template operator()<Knight>(layout.knights,
+                                                        k_pawnsPerSide + 2);
+  createPiecesFromContainer.template operator()<Bishop>(layout.bishops,
+                                                        k_pawnsPerSide + 4);
+  createPiecesFromContainer.template operator()<Queen>(layout.queens,
+                                                       k_pawnsPerSide + 6);
+  createPiecesFromContainer.template operator()<King>(layout.kings,
+                                                      k_pawnsPerSide + 7);
 }
 
 void Board::display() {
@@ -148,6 +162,8 @@ bool Board::isValidMove(Color color, const Position &start,
   }
 
   // Castling case
+  // Holy nested ifs, Batman!
+  // TODO: Should be possible to clean this up
   if (dynamic_cast<King *>(pieceToMove)) {
     Position directionToMove = getDirectionVector(start, end);
     if (std::abs(directionToMove.first) == 2 && directionToMove.second == 0) {
@@ -155,11 +171,67 @@ bool Board::isValidMove(Color color, const Position &start,
       if (pieceToMove->hasMoved()) {
         return false;
       }
-
       // Check squares along intended path to see if they are attacked
       // if (directionToMove.first)
       // {
       // }
+
+      if (sign(directionToMove.first) > 0 && color == Color::black) {
+        // Black kingside castle
+        if (m_castleStatus[k_blackKingsideIndex] != 0) {
+          // Cannot castle if rook has moved
+          if (dynamic_cast<Rook *>(getPieceAt({7, 7})) &&
+              !getPieceAt({7, 7})->hasMoved()) {
+            // Can only castle if no pieces are in the way
+            if (!isPieceBlockingRook({7, 7}, {4, 7})) {
+              // First make sure we can't castle again
+              m_castleStatus.reset();
+              // Now move pieces
+              movePiece({7, 7}, {5, 7});
+              movePiece({4, 7}, {6, 7});
+            }
+          }
+        }
+      } else if (sign(directionToMove.first) < 0 && color == Color::black) {
+        // Black queenside castle
+        if (m_castleStatus[k_blackQueensideIndex] != 0) {
+          if (dynamic_cast<Rook *>(getPieceAt({0, 7})) &&
+              !getPieceAt({0, 7})->hasMoved()) {
+            if (!isPieceBlockingRook({0, 7}, {4, 7})) {
+              m_castleStatus.reset();
+
+              movePiece({0, 7}, {3, 7});
+              movePiece({4, 7}, {2, 7});
+            }
+          }
+        }
+      } else if (sign(directionToMove.first) > 0 && color == Color::white) {
+        // White kingside castle
+        if (m_castleStatus[k_whiteKingsideIndex] != 0) {
+          if (dynamic_cast<Rook *>(getPieceAt({7, 0})) &&
+              !getPieceAt({7, 0})->hasMoved()) {
+            if (!isPieceBlockingRook({7, 0}, {4, 0})) {
+              m_castleStatus.reset();
+
+              movePiece({7, 0}, {5, 0});
+              movePiece({4, 0}, {6, 0});
+            }
+          }
+        }
+      } else if (sign(directionToMove.first) < 0 && color == Color::white) {
+        // White queenside castle
+        if (m_castleStatus[k_whiteQueensideIndex] != 0) {
+          if (dynamic_cast<Rook *>(getPieceAt({0, 0})) &&
+              !getPieceAt({0, 0})->hasMoved()) {
+            if (!isPieceBlockingRook({0, 0}, {4, 0})) {
+              m_castleStatus.reset();
+
+              movePiece({0, 0}, {3, 0});
+              movePiece({4, 0}, {2, 0});
+            }
+          }
+        }
+      }
     }
   }
 
