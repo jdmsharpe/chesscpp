@@ -52,6 +52,7 @@ void Board::loadGame() {
   m_pieces[0][k_pawnsPerSide + 7] = makePiece<King>(Color::black, {4, 7});
 
   m_castleStatus.set();
+  m_prevCastleStatus.set();
 }
 
 void Board::loadFromFen(const BoardLayout &layout) {
@@ -189,6 +190,8 @@ bool Board::isValidMove(Color color, const Position &start,
               // Now move pieces
               movePiece({7, 7}, {5, 7});
               movePiece({4, 7}, {6, 7});
+
+              return true;
             }
           }
         }
@@ -202,6 +205,8 @@ bool Board::isValidMove(Color color, const Position &start,
 
               movePiece({0, 7}, {3, 7});
               movePiece({4, 7}, {2, 7});
+
+              return true;
             }
           }
         }
@@ -215,6 +220,8 @@ bool Board::isValidMove(Color color, const Position &start,
 
               movePiece({7, 0}, {5, 0});
               movePiece({4, 0}, {6, 0});
+
+              return true;
             }
           }
         }
@@ -228,6 +235,8 @@ bool Board::isValidMove(Color color, const Position &start,
 
               movePiece({0, 0}, {3, 0});
               movePiece({4, 0}, {2, 0});
+
+              return true;
             }
           }
         }
@@ -236,7 +245,6 @@ bool Board::isValidMove(Color color, const Position &start,
   }
 
   // Pawns are allowed to move diagonally only if there's a piece to capture
-  // En passant case should go here too
   if (dynamic_cast<Pawn *>(pieceToMove)) {
     if (pieceAtDestination) {
       if (pieceToMove->getColor() != pieceAtDestination->getColor()) {
@@ -247,6 +255,8 @@ bool Board::isValidMove(Color color, const Position &start,
           return true;
         }
       }
+    } else {
+      // En passant case should go here
     }
   }
 
@@ -361,7 +371,7 @@ bool Board::isPieceBlockingRook(const Position &start, const Position &end) {
   return false;
 }
 
-bool Board::isPieceAttacked(Color color, const Position &position) {
+bool Board::isSquareAttacked(Color color, const Position &position) {
   // Rook case
   // Should be a way to refactor/combine these...
   for (int i = 0; i < 8; ++i) {
@@ -529,17 +539,21 @@ bool Board::isKingInCheck(Color color) {
                          ? m_pieces[1][k_pawnsPerSide + 7].get()
                          : m_pieces[0][k_pawnsPerSide + 7].get();
 
-  return isPieceAttacked(color, king->getPosition());
+  return isSquareAttacked(color, king->getPosition());
 }
 
 bool Board::willKingBeInCheck(Color color, const Position &start,
                               const Position &end) {
   if (dynamic_cast<King *>(getPieceAt(start))) {
     // See if this move gets king out of check
-    return isPieceAttacked(color, end);
+    return isSquareAttacked(color, end);
   }
 
   // TODO: This misses the case to check if the move blocks check
   // Think of a good way to add this in without overwriting board state
   return isKingInCheck(color);
+}
+
+bool Board::castlingOccurred() const {
+    return m_castleStatus != m_prevCastleStatus;
 }

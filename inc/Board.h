@@ -15,22 +15,16 @@ public:
 
   void display();
 
-  Piece *getPieceAt(const Position &position);
-
-  void capturePiece(const Position &position);
-
   bool isValidMove(Color color, const Position &start, const Position &end);
-
-  void movePiece(const Position &start, const Position &end);
-
-  bool isPieceAttacked(Color color, const Position &position);
 
   bool isKingInCheck(Color color);
 
   bool willKingBeInCheck(Color color, const Position &start,
                          const Position &end);
 
-  bool canKingCastle(Color color);
+  void movePiece(const Position &start, const Position &end);
+
+  bool castlingOccurred() const;
 
 private:
   inline Position getDirectionVector(const Position &start,
@@ -38,9 +32,15 @@ private:
     return {end.first - start.first, end.second - start.second};
   }
 
+  Piece *getPieceAt(const Position &position);
+
+  void capturePiece(const Position &position);
+
   bool isPieceBlockingBishop(const Position &start, const Position &end);
 
   bool isPieceBlockingRook(const Position &start, const Position &end);
+
+  bool isSquareAttacked(Color color, const Position &position);
 
   void setKingCastleStatus(Color color, CastleSide side);
 
@@ -49,6 +49,7 @@ private:
   Pieces m_pieces;
 
   CastleStatus m_castleStatus;
+  CastleStatus m_prevCastleStatus;
 };
 
 #endif // BOARD_H
