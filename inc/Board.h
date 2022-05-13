@@ -7,11 +7,11 @@ class Board {
 public:
   Board() {}
 
-  ~Board() {}
+  virtual ~Board() = default;
 
   void loadGame();
 
-  void loadFromFen(const BoardLayout& layout);
+  void loadFromFen(const BoardLayout &layout);
 
   void display();
 
@@ -24,7 +24,11 @@ public:
 
   void movePiece(const Position &start, const Position &end);
 
-  bool castlingOccurred() const;
+  void handleAdditionalLogic(const Position &start, const Position &end);
+
+  inline bool castlingOccurred() const { return m_castlingOccurred; }
+
+  inline bool enPassantOccurred() const { return m_enPassantOccurred; };
 
 private:
   inline Position getDirectionVector(const Position &start,
@@ -49,7 +53,10 @@ private:
   Pieces m_pieces;
 
   CastleStatus m_castleStatus;
-  CastleStatus m_prevCastleStatus;
+  Position m_enPassantSquare;
+
+  bool m_castlingOccurred;
+  bool m_enPassantOccurred;
 };
 
 #endif // BOARD_H

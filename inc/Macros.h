@@ -13,8 +13,9 @@
     continue;                                                                  \
   }
 
-#define CONTINUE_IF_TRUE(bool)                                                 \
-  if (bool) {                                                                  \
+// Continue loop if 
+#define CONTINUE_IF_VALID(ptr )                                                \
+  if (ptr) {                                                                   \
     continue;                                                                  \
   }
 

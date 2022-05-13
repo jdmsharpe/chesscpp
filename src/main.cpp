@@ -23,7 +23,6 @@ int main(int argc, char **argv) {
     // // Clear terminal (should investigate a better way to do this)
     // std::cout << "\033[H\033[2J\033[3J";
 
-    std::cout << board.isKingInCheck(game.whoseTurnIsIt()) << std::endl;
     board.display();
     game.outputPlayerTurn();
     std::cin >> input.first >> input.second;
@@ -31,9 +30,12 @@ int main(int argc, char **argv) {
     game.parseMove(input, output);
 
     if (board.isValidMove(game.whoseTurnIsIt(), output.first, output.second)) {
-      if (!board.castlingOccurred()) {
+      if (!board.castlingOccurred() || !board.enPassantOccurred()) {
         board.movePiece(output.first, output.second);
       }
+
+      board.handleAdditionalLogic(output.first, output.second);
+
       // When move is complete, turn is over
       game.switchPlayers();
     }
