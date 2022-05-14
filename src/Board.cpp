@@ -253,10 +253,10 @@ bool Board::isValidMove(Color color, const Position &start,
       // En passant case
       // Pawn can capture only if there is a valid en passant square
       if (end == m_enPassantSquare) {
-        if ((pieceToMove->getPosition().first + 1) == m_enPassantSquare.first ||
-            (pieceToMove->getPosition().first - 1) == m_enPassantSquare.first) {
+        if ((pieceToMove->getPosition().first + 1) == m_enPassantSquare->first ||
+            (pieceToMove->getPosition().first - 1) == m_enPassantSquare->first) {
           if (pieceToMove->getPosition().second - sign ==
-              m_enPassantSquare.second) {
+              m_enPassantSquare->second) {
             // Handle capture here as it is unorthodox
             movePiece(start, end);
             capturePiece({end.first, end.second + sign});
@@ -316,8 +316,7 @@ void Board::movePiece(const Position &start, const Position &end) {
   auto *pieceToMove = getPieceAt(start);
   auto *pieceAtDestination = getPieceAt(end);
 
-  // This really shouldn't be necessary...
-  // ...but it works!
+  // This helps in a surprising number of ways
   RETURN_IF_NULL(pieceToMove);
 
   // All cases should be checked at this point
@@ -566,22 +565,50 @@ bool Board::willKingBeInCheck(Color color, const Position &start,
   return isKingInCheck(color);
 }
 
-void Board::handleAdditionalLogic(const Position &start, const Position &end) {
+bool Board::promotePawn(const PieceType &piece) {
+  if (!m_pawnToPromote.has_value()) {
+    // Should never happen
+    return false;
+  }
+
+  const Position position = m_pawnToPromote.value();
+  Piece *pawnToPromote = getPieceAt(position);
+
+  // Store the color of the pawn
+  Color color = position.second == 7 ? Color::white : Color::black;
+
+  // Is this kosher?
+  if (piece == PieceType::knight) {
+    makePiece<Knight>(color, position);
+  } else if (piece == PieceType::bishop) {
+    makePiece<Bishop>(color, position);
+  } else if (piece == PieceType::rook) {
+    makePiece<Rook>(color, position);
+  } else if (piece == PieceType::queen) {
+    makePiece<Queen>(color, position);
+  }
+
+  return true;
+}
+
+void Board::updateAfterMove(const Position &start, const Position &end) {
   // This function is assumed to be called after a piece has successfully moved
   auto *pieceThatMoved = getPieceAt(end);
 
-  // This is not great, but it's also impossible for {0, 0} to be an en
-  // passant square
-  m_enPassantSquare = {};
+  m_enPassantSquare = std::nullopt;
+  m_pawnToPromote = std::nullopt;
 
-  // Has a pawn moved two spaces?
   if (dynamic_cast<Pawn *>(pieceThatMoved)) {
+    int lastRow = pieceThatMoved->getColor() == Color::white ? 7 : 0;
+
+    // Pawn moved two spaces - need to store en passant square
     if (std::abs(getDirectionVector(start, end).second) == 2) {
       int sign = (pieceThatMoved->getColor() == Color::white) ? -1 : 1;
       // Register en passant square as square directly behind pawn
       m_enPassantSquare = {end.first, end.second + sign};
+    } else if (pieceThatMoved->getPosition().second == lastRow) {
+      // Promotion case
+      m_pawnToPromote = pieceThatMoved->getPosition();
     }
   }
-
-  // Checkmate case
 }

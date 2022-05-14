@@ -22,10 +22,14 @@ public:
 
   void outputPlayerTurn() const;
 
-  bool parseMove(const std::pair<std::string, std::string> input,
+  bool parseMove(const std::pair<std::string, std::string> &input,
                  std::pair<Position, Position> &output) const;
 
-  void explainMoveFormat() const;
+  bool parsePromotion(const std::string &input, PieceType &output) const;
+
+  void outputMoveFormat() const;
+
+  void outputPromotionRules() const;
 
   BoardLayout parseFen();
 

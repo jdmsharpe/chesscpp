@@ -16,8 +16,10 @@ int main(int argc, char **argv) {
   }
 
   // Initialize containers for player inputs
-  std::pair<std::string, std::string> input;
-  std::pair<Position, Position> output;
+  std::pair<std::string, std::string> moveInput;
+  std::pair<Position, Position> moveOutput;
+  std::string promotionInput;
+  PieceType promotionOutput;
 
   while (game.isInProgress()) {
     // // Clear terminal (should investigate a better way to do this)
@@ -25,13 +27,23 @@ int main(int argc, char **argv) {
 
     board.display();
     game.outputPlayerTurn();
-    std::cin >> input.first >> input.second;
+    std::cin >> moveInput.first >> moveInput.second;
 
-    game.parseMove(input, output);
+    game.parseMove(moveInput, moveOutput);
 
-    if (board.isValidMove(game.whoseTurnIsIt(), output.first, output.second)) {
-      board.movePiece(output.first, output.second);
-      board.handleAdditionalLogic(output.first, output.second);
+    if (board.isValidMove(game.whoseTurnIsIt(), moveOutput.first, moveOutput.second)) {
+      board.movePiece(moveOutput.first, moveOutput.second);
+      board.updateAfterMove(moveOutput.first, moveOutput.second);
+
+      if (board.pawnToPromote()) {
+        game.outputPromotionRules();
+        std::cin >> promotionInput;
+        if (game.parsePromotion(promotionInput, promotionOutput)) {
+          board.promotePawn(promotionOutput);
+        }
+      }
+
+      // board.isKingCheckmated(game.whoseTurnIsIt());
 
       // When move is complete, turn is over
       game.switchPlayers();
