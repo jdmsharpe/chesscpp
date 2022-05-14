@@ -30,10 +30,7 @@ int main(int argc, char **argv) {
     game.parseMove(input, output);
 
     if (board.isValidMove(game.whoseTurnIsIt(), output.first, output.second)) {
-      if (!board.castlingOccurred() || !board.enPassantOccurred()) {
-        board.movePiece(output.first, output.second);
-      }
-
+      board.movePiece(output.first, output.second);
       board.handleAdditionalLogic(output.first, output.second);
 
       // When move is complete, turn is over

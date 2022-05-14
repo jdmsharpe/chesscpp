@@ -189,7 +189,6 @@ bool Board::isValidMove(Color color, const Position &start,
               // Now move pieces
               movePiece({7, 7}, {5, 7});
               movePiece({4, 7}, {6, 7});
-              m_castlingOccurred = true;
 
               return true;
             }
@@ -205,7 +204,6 @@ bool Board::isValidMove(Color color, const Position &start,
 
               movePiece({0, 7}, {3, 7});
               movePiece({4, 7}, {2, 7});
-              m_castlingOccurred = true;
 
               return true;
             }
@@ -221,7 +219,6 @@ bool Board::isValidMove(Color color, const Position &start,
 
               movePiece({7, 0}, {5, 0});
               movePiece({4, 0}, {6, 0});
-              m_castlingOccurred = true;
 
               return true;
             }
@@ -237,7 +234,6 @@ bool Board::isValidMove(Color color, const Position &start,
 
               movePiece({0, 0}, {3, 0});
               movePiece({4, 0}, {2, 0});
-              m_castlingOccurred = true;
 
               return true;
             }
@@ -269,7 +265,6 @@ bool Board::isValidMove(Color color, const Position &start,
             // Handle capture here as it is unorthodox
             movePiece(start, end);
             capturePiece({end.first, end.second + sign});
-            m_enPassantOccurred = true;
 
             return true;
           }
@@ -594,9 +589,4 @@ void Board::handleAdditionalLogic(const Position &start, const Position &end) {
   }
 
   // Checkmate case
-  if (true) {}
-
-  // Cleanup
-  m_castlingOccurred = false;
-  m_enPassantOccurred = false;
 }
