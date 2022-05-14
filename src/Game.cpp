@@ -6,6 +6,7 @@
 
 namespace {
 const std::regex k_legalMove = std::regex("[a-hA-H][1-8]");
+const std::regex k_legalPromotion = std::regex("[nNbBrRqQ]");
 const std::regex k_fenCastle = std::regex("[kK]*[qQ]*");
 const std::regex k_delimiters = std::regex("[/ +]");
 const std::regex k_numbers = std::regex("[1-8]");
@@ -37,14 +38,14 @@ void Game::outputPlayerTurn() const {
             << std::endl;
 }
 
-bool Game::parseMove(const std::pair<std::string, std::string> input,
+bool Game::parseMove(const std::pair<std::string, std::string> &input,
                      std::pair<Position, Position> &output) const {
   // Sanity check
   if (input.first.length() != 2 || input.second.length() != 2 ||
       !std::regex_search(input.first, k_legalMove) ||
       !std::regex_search(input.second, k_legalMove)) {
     std::cout << "Error: inputs were invalid." << std::endl;
-    explainMoveFormat();
+    outputMoveFormat();
     return false;
   }
 
@@ -56,7 +57,26 @@ bool Game::parseMove(const std::pair<std::string, std::string> input,
   return true;
 }
 
-void Game::explainMoveFormat() const {
+bool Game::parsePromotion(const std::string &input, PieceType &output) const {
+  if (input.size() > 1 || !std::regex_search(input, k_legalPromotion)) {
+    std::cout << "Error: promotion input was invalid." << std::endl;
+    return false;
+  }
+
+  if (input[0] == 'n' || input[0] == 'N') {
+    output = PieceType::knight;
+  } else if (input[0] == 'b' || input[0] == 'B') {
+    output = PieceType::bishop;
+  } else if (input[0] == 'r' || input[0] == 'R') {
+    output = PieceType::rook;
+  } else if (input[0] == 'q' || input[0] == 'Q') {
+    output = PieceType::queen;
+  }
+
+  return true;
+}
+
+void Game::outputMoveFormat() const {
   std::cout << "Moves should be input in standard chessboard notation, i.e. "
             << std::endl
             << "treating horizontal squares as A through F, and vertical "
@@ -69,6 +89,14 @@ void Game::explainMoveFormat() const {
             << "As an example, to move White's E2 pawn to E4, you can type "
                "either 'e2 e4' or 'E2 E4'."
             << std::endl;
+}
+
+void Game::outputPromotionRules() const {
+  std::cout << "Please enter the letter of the piece you would like to promote "
+            << std::endl
+            << "to. For example, to promote to queen, enter Q, and to get a "
+            << std::endl
+            << "knight, enter N." << std::endl;
 }
 
 BoardLayout Game::parseFen() {
@@ -114,25 +142,15 @@ BoardLayout Game::parseFen() {
 
               if (token == 'p' || token == 'P') {
                 layout.pawns.push_back({color, currentPos});
-              }
-
-              if (token == 'n' || token == 'N') {
+              } else if (token == 'n' || token == 'N') {
                 layout.knights.push_back({color, currentPos});
-              }
-
-              if (token == 'b' || token == 'B') {
+              } else if (token == 'b' || token == 'B') {
                 layout.bishops.push_back({color, currentPos});
-              }
-
-              if (token == 'r' || token == 'R') {
+              } else if (token == 'r' || token == 'R') {
                 layout.rooks.push_back({color, currentPos});
-              }
-
-              if (token == 'q' || token == 'Q') {
+              } else if (token == 'q' || token == 'Q') {
                 layout.queens.push_back({color, currentPos});
-              }
-
-              if (token == 'k' || token == 'K') {
+              } else if (token == 'k' || token == 'K') {
                 layout.kings.push_back({color, currentPos});
               }
 
@@ -168,14 +186,11 @@ BoardLayout Game::parseFen() {
               for (const auto &token : tokens[i]) {
                 if (token == 'k') {
                   layout.castleStatus.set(k_blackKingsideIndex, true);
-                }
-                if (token == 'K') {
+                } else if (token == 'K') {
                   layout.castleStatus.set(k_whiteKingsideIndex, true);
-                }
-                if (token == 'q') {
+                } else if (token == 'q') {
                   layout.castleStatus.set(k_blackQueensideIndex, true);
-                }
-                if (token == 'Q') {
+                } else if (token == 'Q') {
                   layout.castleStatus.set(k_whiteQueensideIndex, true);
                 }
               }

@@ -22,9 +22,15 @@ public:
   bool willKingBeInCheck(Color color, const Position &start,
                          const Position &end);
 
+  // bool isKingCheckmated(Color color);
+
+  inline bool pawnToPromote() const { return m_pawnToPromote.has_value(); }
+
+  bool promotePawn(const PieceType &piece);
+
   void movePiece(const Position &start, const Position &end);
 
-  void handleAdditionalLogic(const Position &start, const Position &end);
+  void updateAfterMove(const Position &start, const Position &end);
 
 private:
   inline Position getDirectionVector(const Position &start,
@@ -49,7 +55,8 @@ private:
   Pieces m_pieces;
 
   CastleStatus m_castleStatus;
-  Position m_enPassantSquare;
+  std::optional<Position> m_enPassantSquare;
+  std::optional<Position> m_pawnToPromote;
 };
 
 #endif // BOARD_H
