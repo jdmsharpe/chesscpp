@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
       board.movePiece(moveOutput.first, moveOutput.second);
       board.updateAfterMove(moveOutput.first, moveOutput.second);
 
-      if (board.pawnToPromote()) {
+      while (board.pawnToPromote()) {
         game.outputPromotionRules();
         std::cin >> promotionInput;
         if (game.parsePromotion(promotionInput, promotionOutput)) {

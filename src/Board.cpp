@@ -104,30 +104,40 @@ void Board::display() {
 }
 
 Piece *Board::getPieceAt(const Position &position) {
-  {
-    for (int i = 0; i < 2; ++i) {
-      for (int j = 0; j < k_totalPieces / 2; ++j) {
-        CONTINUE_IF_NULL(m_pieces[i][j]);
-        // Doesn't really feel optimal, but it does work
-        if (m_pieces[i][j]->getPosition() == position) {
-          return m_pieces[i][j].get();
-        }
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < k_totalPieces / 2; ++j) {
+      CONTINUE_IF_NULL(m_pieces[i][j]);
+      // Doesn't really feel optimal, but it does work
+      if (m_pieces[i][j]->getPosition() == position) {
+        return m_pieces[i][j].get();
       }
     }
-
-    return nullptr;
   }
+
+  return nullptr;
+}
+
+std::pair<size_t, size_t> Board::getIndexOfPiece(const Piece *piece) {
+  for (size_t i = 0; i < 2; ++i) {
+    for (size_t j = 0; j < k_totalPieces / 2; ++j) {
+      if (m_pieces[i][j].get() == piece) {
+        return {i, j};
+      }
+    }
+  }
+
+  // Could use optional instead, but it's very overkill because we know
+  // the piece we're searching for is in the container
+  return {};
 }
 
 void Board::capturePiece(const Position &position) {
-  {
-    for (int i = 0; i < 2; ++i) {
-      for (int j = 0; j < k_totalPieces / 2; ++j) {
-        CONTINUE_IF_NULL(m_pieces[i][j]);
-        if (m_pieces[i][j]->getPosition() == position) {
-          m_pieces[i][j].reset();
-          m_pieces[i][j] = nullptr;
-        }
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < k_totalPieces / 2; ++j) {
+      CONTINUE_IF_NULL(m_pieces[i][j]);
+      if (m_pieces[i][j]->getPosition() == position) {
+        m_pieces[i][j].reset();
+        m_pieces[i][j] = nullptr;
       }
     }
   }
@@ -573,20 +583,23 @@ bool Board::promotePawn(const PieceType &piece) {
 
   const Position position = m_pawnToPromote.value();
   Piece *pawnToPromote = getPieceAt(position);
+  const auto &index = getIndexOfPiece(pawnToPromote);
 
   // Store the color of the pawn
   Color color = position.second == 7 ? Color::white : Color::black;
 
   // Is this kosher?
   if (piece == PieceType::knight) {
-    makePiece<Knight>(color, position);
+    m_pieces[index.first][index.second].reset(new Knight(position, color));
   } else if (piece == PieceType::bishop) {
-    makePiece<Bishop>(color, position);
+    m_pieces[index.first][index.second].reset(new Bishop(position, color));
   } else if (piece == PieceType::rook) {
-    makePiece<Rook>(color, position);
+    m_pieces[index.first][index.second].reset(new Rook(position, color));
   } else if (piece == PieceType::queen) {
-    makePiece<Queen>(color, position);
+    m_pieces[index.first][index.second].reset(new Queen(position, color));
   }
+
+  m_pawnToPromote.reset();
 
   return true;
 }

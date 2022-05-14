@@ -40,6 +40,8 @@ private:
 
   Piece *getPieceAt(const Position &position);
 
+  std::pair<size_t, size_t> getIndexOfPiece(const Piece *piece);
+
   void capturePiece(const Position &position);
 
   bool isPieceBlockingBishop(const Position &start, const Position &end);
