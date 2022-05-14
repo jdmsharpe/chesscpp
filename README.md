@@ -3,11 +3,12 @@
 Nothing fancy, just a naive implementation as a personal project.
 
 ## Build Instructions
-1. Clone repo
-2. In the same directory as the cloned repo, create a build folder: `mkdir chess_build`
-3. `cd chess_build`
-4. `cmake ../chess`
-5. `cmake --build .`
+1. Requires cmake: `sudo apt-get install cmake`
+2. Clone repo
+3. In the same directory as the cloned repo, create a build folder: `mkdir chess_build`
+4. `cd chess_build`
+5. `cmake ../chess`
+6. `cmake --build .`
 
 ## Remaining Work
 * Detect checkmate
