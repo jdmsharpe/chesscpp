@@ -13,7 +13,7 @@ public:
 
   void loadFromFen(const BoardLayout &layout);
 
-  void display();
+  void display(Color color);
 
   bool isValidMove(Color color, const Position &start, const Position &end);
 

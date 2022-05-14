@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
     // // Clear terminal (should investigate a better way to do this)
     // std::cout << "\033[H\033[2J\033[3J";
 
-    board.display();
+    board.display(game.whoseTurnIsIt());
     game.outputPlayerTurn();
     std::cin >> moveInput.first >> moveInput.second;
 
