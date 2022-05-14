@@ -6,6 +6,7 @@
 
 namespace {
 const std::regex k_legalMove = std::regex("[a-hA-H][1-8]");
+const std::regex k_fenCastle = std::regex("[kK]*[qQ]*");
 const std::regex k_delimiters = std::regex("[/ +]");
 const std::regex k_numbers = std::regex("[1-8]");
 
@@ -161,12 +162,36 @@ BoardLayout Game::parseFen() {
           if (tokens[i] == "-") {
             // Nothing to record
             continue;
+          } else {
+            if (tokens[i].length() <= 4 &&
+                std::regex_search(tokens[i], k_fenCastle)) {
+              for (const auto &token : tokens[i]) {
+                if (token == 'k') {
+                  layout.castleStatus.set(k_blackKingsideIndex, true);
+                }
+                if (token == 'K') {
+                  layout.castleStatus.set(k_whiteKingsideIndex, true);
+                }
+                if (token == 'q') {
+                  layout.castleStatus.set(k_blackQueensideIndex, true);
+                }
+                if (token == 'Q') {
+                  layout.castleStatus.set(k_whiteQueensideIndex, true);
+                }
+              }
+            }
           }
         }
 
         if (i == k_enPassantIndex) {
           if (tokens[i] == "-") {
             continue;
+          } else {
+            if (tokens[i].length() == 2 &&
+                std::regex_search(tokens[i], k_legalMove)) {
+              layout.enPassantTarget = {k_letterToIndex.at(tokens[i][0]),
+                                        k_numberToIndex.at(tokens[i][1])};
+            }
           }
         }
 

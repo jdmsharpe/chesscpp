@@ -38,4 +38,10 @@ struct BoardLayout {
   size_t turnNum;
 };
 
+// Variables for indexing castle status
+constexpr int k_blackKingsideIndex = 0;
+constexpr int k_blackQueensideIndex = 1;
+constexpr int k_whiteKingsideIndex = 2;
+constexpr int k_whiteQueensideIndex = 3;
+
 #endif // DEFS_H
