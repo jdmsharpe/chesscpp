@@ -26,10 +26,6 @@ public:
 
   void handleAdditionalLogic(const Position &start, const Position &end);
 
-  inline bool castlingOccurred() const { return m_castlingOccurred; }
-
-  inline bool enPassantOccurred() const { return m_enPassantOccurred; };
-
 private:
   inline Position getDirectionVector(const Position &start,
                                      const Position &end) {
@@ -54,9 +50,6 @@ private:
 
   CastleStatus m_castleStatus;
   Position m_enPassantSquare;
-
-  bool m_castlingOccurred;
-  bool m_enPassantOccurred;
 };
 
 #endif // BOARD_H
