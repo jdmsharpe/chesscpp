@@ -583,12 +583,13 @@ bool Board::promotePawn(const PieceType &piece) {
 
   const Position position = m_pawnToPromote.value();
   Piece *pawnToPromote = getPieceAt(position);
+
+  // Figure out where in container the pawn is so we can reset the pointer
   const auto &index = getIndexOfPiece(pawnToPromote);
 
   // Store the color of the pawn
   Color color = position.second == 7 ? Color::white : Color::black;
 
-  // Is this kosher?
   if (piece == PieceType::knight) {
     m_pieces[index.first][index.second].reset(new Knight(position, color));
   } else if (piece == PieceType::bishop) {
