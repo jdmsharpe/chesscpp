@@ -1,21 +1,24 @@
 #include "Board.h"
 #include "Game.h"
 
+// Parse CLI arguments
 bool argumentPassed(char **start, char **end, const std::string &toFind) {
   return std::find(start, end, toFind) != end;
 }
 
 int main(int argc, char **argv) {
+  // Stack is potentially faster? But maybe these should be on the heap
   Board board;
   Game game;
 
+  // Passing "-l" as an additional argument loads the FEN stored in inc/load.fen
   if (argumentPassed(argv, argv + argc, "-l")) {
     board.loadFromFen(game.parseFen());
   } else {
     board.loadGame();
   }
 
-  // Initialize containers for player inputs
+  // Initialize containers for player inputs/parsed outputs
   std::pair<std::string, std::string> moveInput;
   std::pair<Position, Position> moveOutput;
   std::string promotionInput;
