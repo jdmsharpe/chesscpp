@@ -86,8 +86,8 @@ void Board::loadFromFen(const BoardLayout &layout) {
                                                       k_pawnsPerSide + 7);
 }
 
-void Board::display() {
-  for (int i = 7; i >= 0; --i) {
+void Board::display(Color color) {
+  auto innerLoop = [&](int i) {
     for (int j = 0; j < 8; ++j) {
       const auto *piece = getPieceAt({j, i});
       if (!piece) {
@@ -99,6 +99,16 @@ void Board::display() {
       if (j == 7) {
         std::cout << std::endl;
       }
+    }
+  };
+
+  if (color == Color::white) {
+    for (int i = 7; i >= 0; --i) {
+      innerLoop(i);
+    }
+  } else {
+    for (int i = 0; i <= 7; ++i) {
+      innerLoop(i);
     }
   }
 }
