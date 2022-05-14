@@ -4,11 +4,6 @@
 namespace {
 
 constexpr int k_pawnsPerSide = k_totalPieces / 4;
-// Variables for indexing castle status member
-constexpr int k_blackKingsideIndex = 0;
-constexpr int k_blackQueensideIndex = 1;
-constexpr int k_whiteKingsideIndex = 2;
-constexpr int k_whiteQueensideIndex = 3;
 
 constexpr std::array<Position, 8> k_potentialKnightPositions = {
     {{2, 1}, {2, -1}, {-2, -1}, {-2, 1}, {1, 2}, {1, -2}, {-1, -2}, {-1, 2}}};
