@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
   PieceType promotionOutput;
 
   while (game.isInProgress()) {
-    // // Clear terminal (should investigate a better way to do this)
+    // Clear terminal (should investigate a better way to do this)
     // std::cout << "\033[H\033[2J\033[3J";
 
     board.display(game.whoseTurnIsIt());
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 
     game.parseMove(moveInput, moveOutput);
 
-    if (board.isValidMove(game.whoseTurnIsIt(), moveOutput.first, moveOutput.second)) {
+    if (board.isValidMove(game.whoseTurnIsIt(), moveOutput.first, moveOutput.second, false)) {
       board.movePiece(moveOutput.first, moveOutput.second);
       board.updateAfterMove(moveOutput.first, moveOutput.second);
 
@@ -46,12 +46,17 @@ int main(int argc, char **argv) {
         }
       }
 
-      board.isKingCheckmated(game.whoseTurnIsItNot());
+      if (board.isKingCheckmated(game.whoseTurnIsItNot())) {
+        game.endGame();
+      }
 
       // When move is complete, turn is over
       game.switchPlayers();
     }
   }
+
+  board.display(game.whoseTurnIsItNot());
+  game.whoWon();
 
   return 0;
 }

@@ -31,6 +31,16 @@ constexpr int k_turnIndex = 12;
 
 } // namespace
 
+void Game::whoWon() const {
+  if (!m_winner.has_value()) {
+    // Add draw functionality later
+    return;
+  }
+
+  std::string winner = (m_winner == Color::white) ? "White" : "Black";
+  std::cout << winner << " won the game!" << std::endl;
+}
+
 void Game::outputPlayerTurn() const {
   std::string currentPlayer = m_whiteToMove ? "White" : "Black";
   std::cout << currentPlayer

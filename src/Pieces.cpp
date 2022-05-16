@@ -17,12 +17,14 @@ bool Pawn::isValidMove(const Position &move) const {
   int sign = (m_color == Color::white) ? -1 : 1;
 
   if (m_startingPosition == m_position) {
-    if (m_position.second == move.second + (sign * 2)) {
+    if ((m_position.first == move.first) &&
+        (m_position.second == move.second + (sign * 2))) {
       return true;
     }
   }
 
-  if (m_position.second != move.second + sign) {
+  if ((m_position.first != move.first) ||
+      (m_position.second != move.second + sign)) {
     return false;
   }
 

@@ -15,7 +15,8 @@ public:
 
   void display(Color color);
 
-  bool isValidMove(Color color, const Position &start, const Position &end);
+  bool isValidMove(Color color, const Position &start, const Position &end,
+                   bool forMoveStorage);
 
   bool isKingInCheck(Color color);
 
@@ -44,6 +45,8 @@ private:
 
   void capturePiece(const Position &position);
 
+  void storeValidMoves();
+
   bool isPieceBlockingBishop(const Position &start, const Position &end);
 
   bool isPieceBlockingRook(const Position &start, const Position &end);
@@ -57,6 +60,9 @@ private:
   using Pieces =
       std::array<std::array<std::unique_ptr<Piece>, k_totalPieces / 2>, 2>;
   Pieces m_pieces;
+
+  using Moves = PieceContainer;
+  Moves m_allValidMoves;
 
   CastleStatus m_castleStatus;
   std::optional<Position> m_enPassantSquare;

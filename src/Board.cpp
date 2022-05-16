@@ -153,8 +153,8 @@ void Board::capturePiece(const Position &position) {
   }
 }
 
-bool Board::isValidMove(Color color, const Position &start,
-                        const Position &end) {
+bool Board::isValidMove(Color color, const Position &start, const Position &end,
+                        bool forMoveStorage) {
   auto *pieceToMove = getPieceAt(start);
   auto *pieceAtDestination = getPieceAt(end);
 
@@ -186,10 +186,15 @@ bool Board::isValidMove(Color color, const Position &start,
       if (pieceToMove->hasMoved()) {
         return false;
       }
+
       // Check squares along intended path to see if they are attacked
-      // if (directionToMove.first)
-      // {
-      // }
+      int direction = sign(directionToMove.first);
+      for (int i = 1; i < 3; ++i) {
+        if (isSquareAttacked(color, {directionToMove.first + (i * direction),
+                                     directionToMove.second})) {
+          return false;
+        }
+      }
 
       if (sign(directionToMove.first) > 0 && color == Color::black) {
         // Black kingside castle
@@ -199,11 +204,13 @@ bool Board::isValidMove(Color color, const Position &start,
               !getPieceAt({7, 7})->hasMoved()) {
             // Can only castle if no pieces are in the way
             if (!isPieceBlockingRook({7, 7}, {4, 7})) {
-              // First make sure we can't castle again
-              m_castleStatus.reset();
-              // Now move pieces
-              movePiece({7, 7}, {5, 7});
-              movePiece({4, 7}, {6, 7});
+              if (!forMoveStorage) {
+                // First make sure we can't castle again
+                m_castleStatus.reset();
+                // Now move pieces
+                movePiece({7, 7}, {5, 7});
+                movePiece({4, 7}, {6, 7});
+              }
 
               return true;
             }
@@ -215,10 +222,12 @@ bool Board::isValidMove(Color color, const Position &start,
           if (dynamic_cast<Rook *>(getPieceAt({0, 7})) &&
               !getPieceAt({0, 7})->hasMoved()) {
             if (!isPieceBlockingRook({0, 7}, {4, 7})) {
-              m_castleStatus.reset();
+              if (!forMoveStorage) {
+                m_castleStatus.reset();
 
-              movePiece({0, 7}, {3, 7});
-              movePiece({4, 7}, {2, 7});
+                movePiece({0, 7}, {3, 7});
+                movePiece({4, 7}, {2, 7});
+              }
 
               return true;
             }
@@ -230,10 +239,12 @@ bool Board::isValidMove(Color color, const Position &start,
           if (dynamic_cast<Rook *>(getPieceAt({7, 0})) &&
               !getPieceAt({7, 0})->hasMoved()) {
             if (!isPieceBlockingRook({7, 0}, {4, 0})) {
-              m_castleStatus.reset();
+              if (!forMoveStorage) {
+                m_castleStatus.reset();
 
-              movePiece({7, 0}, {5, 0});
-              movePiece({4, 0}, {6, 0});
+                movePiece({7, 0}, {5, 0});
+                movePiece({4, 0}, {6, 0});
+              }
 
               return true;
             }
@@ -245,10 +256,12 @@ bool Board::isValidMove(Color color, const Position &start,
           if (dynamic_cast<Rook *>(getPieceAt({0, 0})) &&
               !getPieceAt({0, 0})->hasMoved()) {
             if (!isPieceBlockingRook({0, 0}, {4, 0})) {
-              m_castleStatus.reset();
+              if (!forMoveStorage) {
+                m_castleStatus.reset();
 
-              movePiece({0, 0}, {3, 0});
-              movePiece({4, 0}, {2, 0});
+                movePiece({0, 0}, {3, 0});
+                movePiece({4, 0}, {2, 0});
+              }
 
               return true;
             }
@@ -259,6 +272,8 @@ bool Board::isValidMove(Color color, const Position &start,
   }
 
   // Pawns are allowed to move diagonally only if there's a piece to capture
+  // Side note: I kinda hate pawns as they are the only pieces in the game
+  // whose move and attack squares are different, which leads to extra logic
   if (dynamic_cast<Pawn *>(pieceToMove)) {
     int sign = pieceToMove->getColor() == Color::white ? -1 : 1;
     if (pieceAtDestination) {
@@ -269,17 +284,27 @@ bool Board::isValidMove(Color color, const Position &start,
           return true;
         }
       }
+
+      // Handle 2-jump case
+      if (std::abs(end.second - start.second) == 2) {
+        return false;
+      }
+
     } else {
       // En passant case
       // Pawn can capture only if there is a valid en passant square
       if (end == m_enPassantSquare) {
-        if ((pieceToMove->getPosition().first + 1) == m_enPassantSquare->first ||
-            (pieceToMove->getPosition().first - 1) == m_enPassantSquare->first) {
+        if ((pieceToMove->getPosition().first + 1) ==
+                m_enPassantSquare->first ||
+            (pieceToMove->getPosition().first - 1) ==
+                m_enPassantSquare->first) {
           if (pieceToMove->getPosition().second - sign ==
               m_enPassantSquare->second) {
-            // Handle capture here as it is unorthodox
-            movePiece(start, end);
-            capturePiece({end.first, end.second + sign});
+            if (!forMoveStorage) {
+              // Handle capture here as it is unorthodox
+              movePiece(start, end);
+              capturePiece({end.first, end.second + sign});
+            }
 
             return true;
           }
@@ -588,6 +613,8 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
     }
   }
 
+  // This needs a king case, I think...
+
   return false;
 }
 
@@ -610,8 +637,39 @@ bool Board::willKingBeInCheck(Color color, const Position &start,
   return willMoveBlockCheck(color, start, end);
 }
 
+void Board::storeValidMoves() {
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < k_totalPieces / 2; ++j) {
+      CONTINUE_IF_NULL(m_pieces[i][j]);
+
+      const auto &color = m_pieces[i][j]->getColor();
+      const auto &position = m_pieces[i][j]->getPosition();
+
+      for (int k = 0; k < 8; ++k) {
+        for (int l = 0; l < 8; ++l) {
+          CONTINUE_IF_VALID(position == Position({k, l}));
+
+          if (isValidMove(color, position, Position({k, l}), true)) {
+            m_pieces[i][j]->addValidMove({k, l});
+            m_allValidMoves.emplace_back(color, Position({k, l}));
+          }
+        }
+      }
+    }
+  }
+}
+
 bool Board::isKingCheckmated(Color color) {
-  
+  auto checkForColor = [this, color](std::pair<Color, Position> input) {
+    return color == input.first;
+  };
+
+  if (std::find_if(m_allValidMoves.begin(), m_allValidMoves.end(),
+                   checkForColor) == m_allValidMoves.end()) {
+    return true;
+  }
+
+  return false;
 }
 
 bool Board::promotePawn(const PieceType &piece) {
@@ -664,4 +722,14 @@ void Board::updateAfterMove(const Position &start, const Position &end) {
       m_pawnToPromote = pieceThatMoved->getPosition();
     }
   }
+
+  // Refresh valid moves
+  m_allValidMoves.clear();
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < k_totalPieces / 2; ++j) {
+      CONTINUE_IF_NULL(m_pieces[i][j]);
+      m_pieces[i][j]->clearValidMoves();
+    }
+  }
+  storeValidMoves();
 }
