@@ -51,25 +51,25 @@ void Board::loadGame() {
 
 void Board::loadFromFen(const BoardLayout &layout) {
   // Wow, templated lambdas! C++20 is hot stuff
-  auto createPiecesFromContainer = [&]<class T>(const PieceContainer &container,
-                                                int offset) {
-    int blackCounter = 0;
-    int whiteCounter = 0;
+  auto createPiecesFromContainer =
+      [this]<class T>(const PieceContainer &container, int offset) {
+        int blackCounter = 0;
+        int whiteCounter = 0;
 
-    for (size_t i = 0; i < container.size(); ++i) {
-      const auto piece = container[i];
+        for (size_t i = 0; i < container.size(); ++i) {
+          const auto piece = container[i];
 
-      if (piece.first == Color::black) {
-        m_pieces[0][blackCounter + offset] =
-            makePiece<T>(piece.first, piece.second);
-        ++blackCounter;
-      } else if (piece.first == Color::white) {
-        m_pieces[1][whiteCounter + offset] =
-            makePiece<T>(piece.first, piece.second);
-        ++whiteCounter;
-      }
-    }
-  };
+          if (piece.first == Color::black) {
+            m_pieces[0][blackCounter + offset] =
+                makePiece<T>(piece.first, piece.second);
+            ++blackCounter;
+          } else if (piece.first == Color::white) {
+            m_pieces[1][whiteCounter + offset] =
+                makePiece<T>(piece.first, piece.second);
+            ++whiteCounter;
+          }
+        }
+      };
 
   // I have to be real with you, though, this syntax is an abomination
   // Even Intellisense is mad about it
@@ -87,7 +87,7 @@ void Board::loadFromFen(const BoardLayout &layout) {
 }
 
 void Board::display(Color color) {
-  auto innerLoop = [&](int i) {
+  auto innerLoop = [this](int i) {
     for (int j = 0; j < 8; ++j) {
       const auto *piece = getPieceAt({j, i});
       if (!piece) {
@@ -107,7 +107,7 @@ void Board::display(Color color) {
       innerLoop(i);
     }
   } else {
-    for (int i = 0; i <= 7; ++i) {
+    for (int i = 0; i < 8; ++i) {
       innerLoop(i);
     }
   }
@@ -299,15 +299,11 @@ bool Board::isValidMove(Color color, const Position &start,
     if (isPieceBlockingBishop(start, end)) {
       return false;
     }
-  }
-
-  if (dynamic_cast<Rook *>(pieceToMove)) {
+  } else if (dynamic_cast<Rook *>(pieceToMove)) {
     if (isPieceBlockingRook(start, end)) {
       return false;
     }
-  }
-
-  if (dynamic_cast<Queen *>(pieceToMove)) {
+  } else if (dynamic_cast<Queen *>(pieceToMove)) {
     Position directionVector = getDirectionVector(start, end);
     if (std::abs(directionVector.first) == std::abs(directionVector.second)) {
       if (isPieceBlockingBishop(start, end)) {
@@ -347,6 +343,37 @@ void Board::movePiece(const Position &start, const Position &end) {
   } else {
     pieceToMove->setPosition(end);
   }
+}
+
+bool Board::willMoveBlockCheck(Color color, const Position &start,
+                               const Position &end) {
+  auto *pieceToMove = getPieceAt(start);
+  auto *pieceAtDestination = getPieceAt(end);
+
+  if (!pieceToMove) {
+    return false;
+  }
+
+  bool result;
+
+  if (!pieceAtDestination) {
+    pieceToMove->setPosition(end);
+    result = isKingInCheck(color);
+    pieceToMove->setPosition(start);
+  } else {
+    if (pieceToMove->getColor() == pieceAtDestination->getColor()) {
+      return false;
+    }
+    // Exile to the shadow realm
+    // 100% bad design
+    pieceAtDestination->setPosition({-1, -1});
+    pieceToMove->setPosition(end);
+    result = isKingInCheck(color);
+    pieceToMove->setPosition(start);
+    pieceAtDestination->setPosition(end);
+  }
+
+  return result;
 }
 
 bool Board::isPieceBlockingBishop(const Position &start, const Position &end) {
@@ -580,9 +607,11 @@ bool Board::willKingBeInCheck(Color color, const Position &start,
     return isSquareAttacked(color, end);
   }
 
-  // TODO: This misses the case to check if the move blocks check
-  // Think of a good way to add this in without overwriting board state
-  return isKingInCheck(color);
+  return willMoveBlockCheck(color, start, end);
+}
+
+bool Board::isKingCheckmated(Color color) {
+  
 }
 
 bool Board::promotePawn(const PieceType &piece) {
@@ -592,7 +621,7 @@ bool Board::promotePawn(const PieceType &piece) {
   }
 
   const Position position = m_pawnToPromote.value();
-  Piece *pawnToPromote = getPieceAt(position);
+  auto *pawnToPromote = getPieceAt(position);
 
   // Figure out where in container the pawn is so we can reset the pointer
   const auto &index = getIndexOfPiece(pawnToPromote);
