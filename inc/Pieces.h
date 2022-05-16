@@ -12,6 +12,14 @@ public:
 
   virtual bool isValidMove(const Position &move) const;
 
+  inline void addValidMove(const Position &move) {
+    m_validMoves.push_back(move);
+  }
+
+  inline void clearValidMoves() {
+    m_validMoves.clear();
+  }
+
   inline Position getPosition() const { return m_position; }
 
   inline void setPosition(const Position &position) {
@@ -33,6 +41,7 @@ public:
 protected:
   Position m_position;
   Position m_startingPosition;
+  std::vector<Position> m_validMoves;
   Color m_color;
   const char m_letter;
   bool m_hasMoved;

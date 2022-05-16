@@ -14,6 +14,13 @@ public:
 
   inline bool isInProgress() const { return m_inProgress; }
 
+  inline void endGame() {
+    m_inProgress = false;
+    m_winner = whoseTurnIsIt();
+  }
+
+  void whoWon() const;
+
   inline Color whoseTurnIsIt() const {
     return m_whiteToMove ? Color::white : Color::black;
   }
@@ -47,6 +54,7 @@ private:
   }
 
   bool m_inProgress = true;
+  std::optional<Color> m_winner;
   bool m_whiteToMove = true;
 };
 
