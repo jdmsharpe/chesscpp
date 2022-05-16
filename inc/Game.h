@@ -18,6 +18,10 @@ public:
     return m_whiteToMove ? Color::white : Color::black;
   }
 
+  inline Color whoseTurnIsItNot() const {
+    return m_whiteToMove ? Color::black : Color::white;
+  }
+
   inline void switchPlayers() { m_whiteToMove = !m_whiteToMove; }
 
   void outputPlayerTurn() const;

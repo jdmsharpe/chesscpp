@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
         }
       }
 
-      // board.isKingCheckmated(game.whoseTurnIsIt());
+      board.isKingCheckmated(game.whoseTurnIsItNot());
 
       // When move is complete, turn is over
       game.switchPlayers();

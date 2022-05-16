@@ -22,7 +22,7 @@ public:
   bool willKingBeInCheck(Color color, const Position &start,
                          const Position &end);
 
-  // bool isKingCheckmated(Color color);
+  bool isKingCheckmated(Color color);
 
   inline bool pawnToPromote() const { return m_pawnToPromote.has_value(); }
 
@@ -49,6 +49,8 @@ private:
   bool isPieceBlockingRook(const Position &start, const Position &end);
 
   bool isSquareAttacked(Color color, const Position &position);
+
+  bool willMoveBlockCheck(Color color, const Position &start, const Position &end);
 
   void setKingCastleStatus(Color color, CastleSide side);
 
