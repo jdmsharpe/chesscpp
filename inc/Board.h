@@ -25,6 +25,8 @@ public:
 
   bool isKingCheckmated(Color color);
 
+  bool hasStalemateOccurred(Color color);
+
   inline bool pawnToPromote() const { return m_pawnToPromote.has_value(); }
 
   bool promotePawn(const PieceType &piece);

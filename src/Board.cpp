@@ -664,6 +664,26 @@ bool Board::isKingCheckmated(Color color) {
     return color == input.first;
   };
 
+  if (isKingInCheck(color)) {
+    if (std::find_if(m_allValidMoves.begin(), m_allValidMoves.end(),
+                     checkForColor) == m_allValidMoves.end()) {
+      return true;
+    }
+  }
+
+  // Check for dead positions
+  // if ()
+
+  return false;
+}
+
+bool Board::hasStalemateOccurred(Color color) {
+  // Identical to checkmate function, but removes the requirement of the king
+  // being in check
+  auto checkForColor = [this, color](std::pair<Color, Position> input) {
+    return color == input.first;
+  };
+
   if (std::find_if(m_allValidMoves.begin(), m_allValidMoves.end(),
                    checkForColor) == m_allValidMoves.end()) {
     return true;
