@@ -11,7 +11,6 @@ Nothing fancy, just a naive implementation as a personal project.
 6. `cmake --build .`
 
 ## Remaining Work
-* Detect stalemate
 * Observe half-move rule
 * Investigate edge cases
 * Update unit tests for Board
