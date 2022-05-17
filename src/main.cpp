@@ -34,7 +34,8 @@ int main(int argc, char **argv) {
 
     game.parseMove(moveInput, moveOutput);
 
-    if (board.isValidMove(game.whoseTurnIsIt(), moveOutput.first, moveOutput.second, false)) {
+    if (board.isValidMove(game.whoseTurnIsIt(), moveOutput.first,
+                          moveOutput.second, false)) {
       board.movePiece(moveOutput.first, moveOutput.second);
       board.updateAfterMove(moveOutput.first, moveOutput.second);
 
@@ -47,7 +48,9 @@ int main(int argc, char **argv) {
       }
 
       if (board.isKingCheckmated(game.whoseTurnIsItNot())) {
-        game.endGame();
+        game.endWithVictory();
+      } else if (board.hasStalemateOccurred(game.whoseTurnIsItNot())) {
+        game.endWithDraw();
       }
 
       // When move is complete, turn is over
@@ -55,7 +58,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  board.display(game.whoseTurnIsItNot());
+  board.display(game.whoseTurnIsIt());
   game.whoWon();
 
   return 0;

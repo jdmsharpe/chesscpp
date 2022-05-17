@@ -14,10 +14,15 @@ public:
 
   inline bool isInProgress() const { return m_inProgress; }
 
-  inline void endGame() {
+  inline void endWithDraw() {
     m_inProgress = false;
+  }
+
+  inline void endWithVictory() {
+    endWithDraw();
     m_winner = whoseTurnIsIt();
   }
+
 
   void whoWon() const;
 

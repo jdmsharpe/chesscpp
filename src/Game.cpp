@@ -32,8 +32,9 @@ constexpr int k_turnIndex = 12;
 } // namespace
 
 void Game::whoWon() const {
+  // Draw case
   if (!m_winner.has_value()) {
-    // Add draw functionality later
+    std::cout << "The game was a draw!" << std::endl;
     return;
   }
 
