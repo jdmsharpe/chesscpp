@@ -46,6 +46,8 @@ public:
 
   void outputPromotionRules() const;
 
+  void outputKingInCheck() const;
+
   BoardLayout parseFen();
 
 private:
@@ -59,7 +61,7 @@ private:
 
   bool m_inProgress = true;
   bool m_whiteToMove = true;
-  std::optional<Color> m_winner;
+  std::optional<Color> m_winner = std::nullopt;
 };
 
 #endif // GAME_H

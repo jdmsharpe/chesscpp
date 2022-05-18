@@ -37,7 +37,7 @@ struct BoardLayout {
   //           white kingside,
   //           white queenside
   CastleStatus castleStatus;
-  Position enPassantTarget;
+  std::optional<Position> enPassantTarget;
   size_t halfMoveNum;
   size_t turnNum;
 };

@@ -45,8 +45,6 @@ void Board::loadGame() {
   m_pieces[0][k_pawnsPerSide + 5] = makePiece<Bishop>(Color::black, {5, 7});
   m_pieces[0][k_pawnsPerSide + 6] = makePiece<Queen>(Color::black, {3, 7});
   m_pieces[0][k_pawnsPerSide + 7] = makePiece<King>(Color::black, {4, 7});
-
-  m_castleStatus.set();
 }
 
 void Board::loadFromFen(const BoardLayout &layout) {
@@ -84,6 +82,11 @@ void Board::loadFromFen(const BoardLayout &layout) {
                                                        k_pawnsPerSide + 6);
   createPiecesFromContainer.template operator()<King>(layout.kings,
                                                       k_pawnsPerSide + 7);
+
+  m_castleStatus = layout.castleStatus;
+  m_enPassantSquare = layout.enPassantTarget;
+  m_halfMoveNum = layout.halfMoveNum;
+  m_turnNum = layout.turnNum;
 }
 
 void Board::display(Color color) {
@@ -698,13 +701,18 @@ bool Board::isKingCheckmated(Color color) {
     }
   }
 
-  // Check for dead positions
-  // if ()
-
   return false;
 }
 
 bool Board::hasStalemateOccurred(Color color) {
+  // 50-move rule
+  if (m_halfMoveNum >= 50) {
+    return true;
+  }
+
+  // Dead positions
+  // if (oneSideHas({PieceType::bishop, }))
+
   // Identical to checkmate function, but removes the requirement of the king
   // being in check
   auto checkForColor = [this, color](std::pair<Color, Position> input) {
@@ -749,12 +757,23 @@ bool Board::promotePawn(const PieceType &piece) {
   return true;
 }
 
-void Board::updateAfterMove(const Position &start, const Position &end) {
-  // This function is assumed to be called after a piece has successfully moved
-  auto *pieceThatMoved = getPieceAt(end);
-
+void Board::updateBoardState(const Position &start, const Position &end) {
   m_enPassantSquare = std::nullopt;
   m_pawnToPromote = std::nullopt;
+
+  // Refresh valid moves
+  m_allValidMoves.clear();
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < k_totalPieces / 2; ++j) {
+      CONTINUE_IF_NULL(m_pieces[i][j]);
+      m_pieces[i][j]->clearValidMoves();
+    }
+  }
+  storeValidMoves();
+
+  auto *pieceThatMoved = getPieceAt(end);
+
+  RETURN_IF_NULL(pieceThatMoved);
 
   if (dynamic_cast<Pawn *>(pieceThatMoved)) {
     int lastRow = pieceThatMoved->getColor() == Color::white ? 7 : 0;
@@ -769,14 +788,4 @@ void Board::updateAfterMove(const Position &start, const Position &end) {
       m_pawnToPromote = pieceThatMoved->getPosition();
     }
   }
-
-  // Refresh valid moves
-  m_allValidMoves.clear();
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < k_totalPieces / 2; ++j) {
-      CONTINUE_IF_NULL(m_pieces[i][j]);
-      m_pieces[i][j]->clearValidMoves();
-    }
-  }
-  storeValidMoves();
 }
