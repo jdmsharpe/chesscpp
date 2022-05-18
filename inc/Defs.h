@@ -10,6 +10,8 @@
 #include <utility>
 #include <vector>
 
+static bool k_verbose = false;
+
 constexpr int k_totalPieces = 32;
 constexpr int k_numCastleOptions = 4;
 

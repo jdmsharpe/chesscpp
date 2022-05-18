@@ -19,10 +19,9 @@ public:
   }
 
   inline void endWithVictory() {
-    endWithDraw();
+    m_inProgress = false;
     m_winner = whoseTurnIsIt();
   }
-
 
   void whoWon() const;
 
@@ -59,8 +58,8 @@ private:
   }
 
   bool m_inProgress = true;
-  std::optional<Color> m_winner;
   bool m_whiteToMove = true;
+  std::optional<Color> m_winner;
 };
 
 #endif // GAME_H
