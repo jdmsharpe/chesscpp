@@ -9,7 +9,6 @@ bool argumentPassed(char **start, char **end, const std::string &toFind) {
 }
 
 int main(int argc, char **argv) {
-  // Stack is potentially faster? But maybe these should be on the heap
   Board board;
   Game game;
 
@@ -33,10 +32,15 @@ int main(int argc, char **argv) {
 
   while (game.isInProgress()) {
     // Clear terminal (should investigate a better way to do this)
-    // std::cout << "\033[H\033[2J\033[3J";
+    std::cout << "\033[H\033[2J\033[3J";
 
     board.display(game.whoseTurnIsIt());
+    if (board.isKingInCheck(game.whoseTurnIsIt())) {
+      // Alert player if their king is in check
+      game.outputKingInCheck();
+    }
     game.outputPlayerTurn();
+
     std::cin >> moveInput.first >> moveInput.second;
 
     // For timing and later optimization
@@ -47,7 +51,7 @@ int main(int argc, char **argv) {
     if (board.isValidMove(game.whoseTurnIsIt(), moveOutput.first,
                           moveOutput.second, false)) {
       board.movePiece(moveOutput.first, moveOutput.second);
-      board.updateAfterMove(moveOutput.first, moveOutput.second);
+      board.updateBoardState(moveOutput.first, moveOutput.second);
 
       while (board.pawnToPromote()) {
         game.outputPromotionRules();

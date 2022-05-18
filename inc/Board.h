@@ -33,7 +33,7 @@ public:
 
   void movePiece(const Position &start, const Position &end);
 
-  void updateAfterMove(const Position &start, const Position &end);
+  void updateBoardState(const Position &start, const Position &end);
 
 private:
   inline Position getDirectionVector(const Position &start,
@@ -66,9 +66,12 @@ private:
   using Moves = PieceContainer;
   Moves m_allValidMoves;
 
-  CastleStatus m_castleStatus;
-  std::optional<Position> m_enPassantSquare;
-  std::optional<Position> m_pawnToPromote;
+  CastleStatus m_castleStatus = CastleStatus().set();
+  std::optional<Position> m_enPassantSquare = std::nullopt;
+  std::optional<Position> m_pawnToPromote = std::nullopt;
+
+  size_t m_halfMoveNum = 0;
+  size_t m_turnNum = 1;
 };
 
 #endif // BOARD_H

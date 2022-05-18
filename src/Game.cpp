@@ -110,6 +110,11 @@ void Game::outputPromotionRules() const {
             << "knight, enter N." << std::endl;
 }
 
+void Game::outputKingInCheck() const {
+  std::string currentPlayer = m_whiteToMove ? "White" : "Black";
+  std::cout << currentPlayer << "'s king is in check!" << std::endl;
+}
+
 BoardLayout Game::parseFen() {
   std::string line = "";
   std::ifstream ifs;
@@ -211,12 +216,14 @@ BoardLayout Game::parseFen() {
 
         if (i == k_enPassantIndex) {
           if (tokens[i] == "-") {
+            layout.enPassantTarget = std::nullopt;
             continue;
           } else {
             if (tokens[i].length() == 2 &&
                 std::regex_search(tokens[i], k_legalMove)) {
               layout.enPassantTarget = {k_letterToIndex.at(tokens[i][0]),
                                         k_numberToIndex.at(tokens[i][1])};
+              continue;
             }
           }
         }
