@@ -16,12 +16,12 @@ public:
   void display(Color color);
 
   bool isValidMove(Color color, const Position &start, const Position &end,
-                   bool forMoveStorage);
+                   const bool forMoveStorage);
 
   bool isKingInCheck(Color color);
 
-  bool willKingBeInCheck(Color color, const Position &start,
-                         const Position &end);
+  bool canKingGetOutOfCheck(Color color, const Position &start,
+                            const Position &end);
 
   bool isKingCheckmated(Color color);
 
@@ -55,7 +55,7 @@ private:
 
   bool isSquareAttacked(Color color, const Position &position);
 
-  bool willMoveBlockCheck(Color color, const Position &start, const Position &end);
+  bool moveAndCheckForCheck(Color color, const Position &start, const Position &end);
 
   void setKingCastleStatus(Color color, CastleSide side);
 

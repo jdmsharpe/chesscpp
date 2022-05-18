@@ -154,7 +154,7 @@ void Board::capturePiece(const Position &position) {
 }
 
 bool Board::isValidMove(Color color, const Position &start, const Position &end,
-                        bool forMoveStorage) {
+                        const bool forMoveStorage) {
   auto *pieceToMove = getPieceAt(start);
   auto *pieceAtDestination = getPieceAt(end);
 
@@ -168,12 +168,24 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
     return false;
   }
 
+  // Cannot capture pieces that are the same color
+  if (pieceAtDestination) {
+    if (pieceToMove->getColor() == pieceAtDestination->getColor()) {
+      return false;
+    }
+  }
+
   // First see if the king is in check
   // Then see if king will be in check
   if (isKingInCheck(color)) {
-    if (willKingBeInCheck(color, start, end)) {
+    if (moveAndCheckForCheck(color, start, end)) {
       return false;
     }
+  }
+
+  // If this move leads to check, it is illegal
+  if (moveAndCheckForCheck(color, start, end)) {
+    return false;
   }
 
   // Castling case
@@ -271,11 +283,12 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
     }
   }
 
-  // Pawns are allowed to move diagonally only if there's a piece to capture
   // Side note: I kinda hate pawns as they are the only pieces in the game
   // whose move and attack squares are different, which leads to extra logic
   if (dynamic_cast<Pawn *>(pieceToMove)) {
+    Position directionToMove = getDirectionVector(start, end);
     int sign = pieceToMove->getColor() == Color::white ? -1 : 1;
+    // Pawns are allowed to move diagonally only if there's a piece to capture
     if (pieceAtDestination) {
       if (pieceToMove->getColor() != pieceAtDestination->getColor()) {
         if ((start.second == end.second + sign) &&
@@ -284,12 +297,6 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
           return true;
         }
       }
-
-      // Handle 2-jump case
-      if (std::abs(end.second - start.second) == 2) {
-        return false;
-      }
-
     } else {
       // En passant case
       // Pawn can capture only if there is a valid en passant square
@@ -309,6 +316,16 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
             return true;
           }
         }
+      }
+    }
+
+    // Pawns cannot capture if moving normally
+    // and cannot move through pieces when moving 2 squares
+    if (pieceAtDestination) {
+      return false;
+    } else if (std::abs(directionToMove.second) == 2) {
+      if (pieceAtDestination || getPieceAt({end.first, end.second + sign})) {
+        return false;
       }
     }
   }
@@ -341,15 +358,6 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
     }
   }
 
-  // General capture case
-  if (pieceAtDestination) {
-    if (pieceToMove->getColor() != pieceAtDestination->getColor()) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
   return true;
 }
 
@@ -368,37 +376,6 @@ void Board::movePiece(const Position &start, const Position &end) {
   } else {
     pieceToMove->setPosition(end);
   }
-}
-
-bool Board::willMoveBlockCheck(Color color, const Position &start,
-                               const Position &end) {
-  auto *pieceToMove = getPieceAt(start);
-  auto *pieceAtDestination = getPieceAt(end);
-
-  if (!pieceToMove) {
-    return false;
-  }
-
-  bool result;
-
-  if (!pieceAtDestination) {
-    pieceToMove->setPosition(end);
-    result = isKingInCheck(color);
-    pieceToMove->setPosition(start);
-  } else {
-    if (pieceToMove->getColor() == pieceAtDestination->getColor()) {
-      return false;
-    }
-    // Exile to the shadow realm
-    // 100% bad design
-    pieceAtDestination->setPosition({-1, -1});
-    pieceToMove->setPosition(end);
-    result = isKingInCheck(color);
-    pieceToMove->setPosition(start);
-    pieceAtDestination->setPosition(end);
-  }
-
-  return result;
 }
 
 bool Board::isPieceBlockingBishop(const Position &start, const Position &end) {
@@ -455,10 +432,11 @@ bool Board::isPieceBlockingRook(const Position &start, const Position &end) {
 }
 
 bool Board::isSquareAttacked(Color color, const Position &position) {
+  Position positionToCheck;
   // Rook case
   // Should be a way to refactor/combine these...
   for (int i = 0; i < 8; ++i) {
-    Position positionToCheck = {position.first, i};
+    positionToCheck = {position.first, i};
     auto *potentialAttackerX = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerX);
@@ -478,7 +456,7 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
   }
 
   for (int i = 0; i < 8; ++i) {
-    Position positionToCheck = {i, position.second};
+    positionToCheck = {i, position.second};
     auto *potentialAttackerY = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerY);
@@ -501,13 +479,14 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
     if (position.first + i > 7 || position.second + i > 7) {
       continue;
     }
+    positionToCheck = {position.first + i, position.second + i};
 
-    auto *potentialAttackerNortheast =
-        getPieceAt({position.first + i, position.second + i});
+    auto *potentialAttackerNortheast = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerNortheast);
 
     CONTINUE_IF_VALID(potentialAttackerNortheast->getColor() == color);
+    CONTINUE_IF_VALID(position == positionToCheck);
 
     if (dynamic_cast<Bishop *>(potentialAttackerNortheast) ||
         dynamic_cast<Queen *>(potentialAttackerNortheast)) {
@@ -522,13 +501,15 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
     if (position.first - i < 0 || position.second + i > 7) {
       continue;
     }
+    positionToCheck = {position.first - i, position.second + i};
 
     auto *potentialAttackerNorthwest =
-        getPieceAt({position.first - i, position.second + i});
+        getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerNorthwest);
 
     CONTINUE_IF_VALID(potentialAttackerNorthwest->getColor() == color);
+    CONTINUE_IF_VALID(position == positionToCheck);
 
     if (dynamic_cast<Bishop *>(potentialAttackerNorthwest) ||
         dynamic_cast<Queen *>(potentialAttackerNorthwest)) {
@@ -543,13 +524,14 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
     if (position.first + i > 7 || position.second - i < 0) {
       continue;
     }
+    positionToCheck = {position.first + i, position.second - i};
 
-    auto *potentialAttackerSoutheast =
-        getPieceAt({position.first + i, position.second - i});
+    auto *potentialAttackerSoutheast = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerSoutheast);
 
     CONTINUE_IF_VALID(potentialAttackerSoutheast->getColor() == color);
+    CONTINUE_IF_VALID(position == positionToCheck);
 
     if (dynamic_cast<Bishop *>(potentialAttackerSoutheast) ||
         dynamic_cast<Queen *>(potentialAttackerSoutheast)) {
@@ -564,13 +546,14 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
     if (position.first - i < 0 || position.second - i < 0) {
       continue;
     }
+    positionToCheck = {position.first - i, position.second - i};
 
-    auto *potentialAttackerSouthwest =
-        getPieceAt({position.first - i, position.second - i});
+    auto *potentialAttackerSouthwest = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerSouthwest);
 
     CONTINUE_IF_VALID(potentialAttackerSouthwest->getColor() == color);
+    CONTINUE_IF_VALID(position == positionToCheck);
 
     if (dynamic_cast<Bishop *>(potentialAttackerSouthwest) ||
         dynamic_cast<Queen *>(potentialAttackerSouthwest)) {
@@ -583,9 +566,10 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
 
   // Knight case
   for (int i = 0; i < k_potentialKnightPositions.size(); ++i) {
-    auto *potentialKnightAttacker =
-        getPieceAt({position.first + k_potentialKnightPositions[i].first,
-                    position.second + k_potentialKnightPositions[i].second});
+    positionToCheck = {position.first + k_potentialKnightPositions[i].first,
+                       position.second + k_potentialKnightPositions[i].second};
+
+    auto *potentialKnightAttacker = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialKnightAttacker);
 
@@ -627,23 +611,62 @@ bool Board::isKingInCheck(Color color) {
   return isSquareAttacked(color, king->getPosition());
 }
 
-bool Board::willKingBeInCheck(Color color, const Position &start,
-                              const Position &end) {
+bool Board::canKingGetOutOfCheck(Color color, const Position &start,
+                                 const Position &end) {
   if (dynamic_cast<King *>(getPieceAt(start))) {
-    // See if this move gets king out of check
     return isSquareAttacked(color, end);
   }
 
-  return willMoveBlockCheck(color, start, end);
+  return moveAndCheckForCheck(color, start, end);
+}
+
+bool Board::moveAndCheckForCheck(Color color, const Position &start,
+                               const Position &end) {
+  auto *pieceToMove = getPieceAt(start);
+  auto *pieceAtDestination = getPieceAt(end);
+
+  if (!pieceToMove) {
+    return false;
+  }
+
+  bool result;
+
+  if (!pieceAtDestination) {
+    pieceToMove->setPosition(end);
+    result = isKingInCheck(color);
+    pieceToMove->setPosition(start);
+  } else {
+    if (pieceToMove->getColor() == pieceAtDestination->getColor()) {
+      return false;
+    }
+    // Exile to the shadow realm
+    // 100% bad design
+    pieceAtDestination->setPosition({-1, -1});
+    pieceToMove->setPosition(end);
+    result = isKingInCheck(color);
+    pieceToMove->setPosition(start);
+    pieceAtDestination->setPosition(end);
+  }
+
+  return result;
 }
 
 void Board::storeValidMoves() {
+  if (k_verbose) {
+    std::cout << "DEBUG: Legal moves for each piece:" << std::endl;
+  }
   for (int i = 0; i < 2; ++i) {
     for (int j = 0; j < k_totalPieces / 2; ++j) {
       CONTINUE_IF_NULL(m_pieces[i][j]);
 
       const auto &color = m_pieces[i][j]->getColor();
       const auto &position = m_pieces[i][j]->getPosition();
+
+      if (k_verbose) {
+        std::cout << std::endl;
+        std::cout << m_pieces[i][j]->getLetter() << std::endl;
+        std::cout << position.first << " " << position.second << std::endl;
+      }
 
       for (int k = 0; k < 8; ++k) {
         for (int l = 0; l < 8; ++l) {
@@ -652,6 +675,10 @@ void Board::storeValidMoves() {
           if (isValidMove(color, position, Position({k, l}), true)) {
             m_pieces[i][j]->addValidMove({k, l});
             m_allValidMoves.emplace_back(color, Position({k, l}));
+
+            if (k_verbose) {
+              std::cout << k << " " << l << std::endl;
+            }
           }
         }
       }
