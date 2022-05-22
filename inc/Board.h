@@ -36,11 +36,6 @@ public:
   void updateBoardState(const Position &start, const Position &end);
 
 private:
-  inline Position getDirectionVector(const Position &start,
-                                     const Position &end) {
-    return {end.first - start.first, end.second - start.second};
-  }
-
   Piece *getPieceAt(const Position &position);
 
   std::pair<size_t, size_t> getIndexOfPiece(const Piece *piece);
