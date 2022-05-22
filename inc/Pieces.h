@@ -16,9 +16,7 @@ public:
     m_validMoves.push_back(move);
   }
 
-  inline void clearValidMoves() {
-    m_validMoves.clear();
-  }
+  inline void clearValidMoves() { m_validMoves.clear(); }
 
   inline Position getPosition() const { return m_position; }
 

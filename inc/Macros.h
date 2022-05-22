@@ -13,8 +13,8 @@
     continue;                                                                  \
   }
 
-// Continue loop if 
-#define CONTINUE_IF_VALID(ptr )                                                \
+// Continue loop if
+#define CONTINUE_IF_VALID(ptr)                                                 \
   if (ptr) {                                                                   \
     continue;                                                                  \
   }
