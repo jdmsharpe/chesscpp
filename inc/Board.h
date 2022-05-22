@@ -7,7 +7,7 @@ class Board {
 public:
   Board() {}
 
-  virtual ~Board() = default;
+  ~Board() {};
 
   void loadGame();
 
