@@ -13,6 +13,10 @@ std::unique_ptr<T> makePiece(Color color, const Position &position) {
   return std::move(std::make_unique<T>(position, color));
 }
 
+Position getDirectionVector(const Position &start, const Position &end) {
+  return {end.first - start.first, end.second - start.second};
+}
+
 // Credit where credit is due:
 // https://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
 template <typename T> int sign(T val) { return (T(0) < val) - (val < T(0)); }
