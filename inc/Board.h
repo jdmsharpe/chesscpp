@@ -7,7 +7,7 @@ class Board {
 public:
   Board() {}
 
-  ~Board() {};
+  ~Board(){};
 
   void loadGame();
 
@@ -50,7 +50,8 @@ private:
 
   bool isSquareAttacked(Color color, const Position &position);
 
-  bool moveAndCheckForCheck(Color color, const Position &start, const Position &end);
+  bool moveAndCheckForCheck(Color color, const Position &start,
+                            const Position &end);
 
   void setKingCastleStatus(Color color, CastleSide side);
 

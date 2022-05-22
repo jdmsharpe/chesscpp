@@ -14,9 +14,7 @@ public:
 
   inline bool isInProgress() const { return m_inProgress; }
 
-  inline void endWithDraw() {
-    m_inProgress = false;
-  }
+  inline void endWithDraw() { m_inProgress = false; }
 
   inline void endWithVictory() {
     m_inProgress = false;
