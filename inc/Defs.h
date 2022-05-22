@@ -16,7 +16,7 @@ constexpr int k_totalPieces = 32;
 constexpr int k_numCastleOptions = 4;
 
 enum class Color { black, white };
-enum class PieceType { pawn, knight, bishop, rook, queen, king };
+enum class PieceType { none, pawn, knight, bishop, rook, queen, king };
 enum class CastleSide { kingside, queenside };
 
 typedef std::pair<int, int> Position;
