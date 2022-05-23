@@ -1,19 +1,30 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+
+#include "Macros.h"
 #include "Pieces.h"
 
 class Board {
 public:
   Board() {}
 
-  ~Board(){};
+  ~Board() {}
+
+  inline void setRenderer(SDL_Renderer *renderer) {
+    RETURN_IF_NULL(renderer);
+    m_renderer = renderer;
+  }
 
   void loadGame();
 
   void loadFromFen(const BoardLayout &layout);
 
-  void display(Color color);
+  void cliDisplay(Color color);
+
+  void sdlDisplay();
 
   bool isValidMove(Color color, const Position &start, const Position &end,
                    const bool forMoveStorage);
@@ -55,12 +66,14 @@ private:
 
   void setKingCastleStatus(Color color, CastleSide side);
 
+  SDL_Renderer *m_renderer = nullptr;
+
   using Pieces =
       std::array<std::array<std::unique_ptr<Piece>, k_totalPieces / 2>, 2>;
   Pieces m_pieces;
 
   using Moves = PieceContainer;
-  Moves m_allValidMoves;
+  Moves m_allValidMoves = {};
 
   CastleStatus m_castleStatus = CastleStatus().set();
   std::optional<Position> m_enPassantSquare = std::nullopt;

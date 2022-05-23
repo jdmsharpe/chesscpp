@@ -1,27 +1,31 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include "Board.h"
-#include "Game.h"
+#include "Window.h"
+
+enum class AppState {
+  UNKNOWN = -1,
+  MENU = 0,
+  GAME_IN_PROGRESS = 1,
+  GAME_COMPLETE = 2
+};
 
 class Application {
 public:
   Application(int argc, char **argv);
   virtual ~Application() = default;
 
+  // Should not be moved or copied
   Application(const Application &) = delete;
   Application(Application &) = delete;
+  Application(const Application &&) = delete;
+  Application(Application &&) = delete;
 
   int run();
 
 private:
-  Board m_board;
-  Game m_game;
-
-  std::pair<std::string, std::string> m_moveInput = {};
-  std::pair<Position, Position> m_moveOutput = {};
-  std::string m_promotionInput = "";
-  PieceType m_promotionOutput = PieceType::none;
+  Window m_window;
+  AppState m_appState;
 };
 
 #endif // APPLICATION_H

@@ -1,5 +1,4 @@
 #include "Board.h"
-#include "Macros.h"
 
 namespace {
 
@@ -93,7 +92,7 @@ void Board::loadFromFen(const BoardLayout &layout) {
   m_turnNum = layout.turnNum;
 }
 
-void Board::display(Color color) {
+void Board::cliDisplay(Color color) {
   auto innerLoop = [this](int i) {
     for (int j = 0; j < 8; ++j) {
       const auto *piece = getPieceAt({j, i});
@@ -116,6 +115,24 @@ void Board::display(Color color) {
   } else {
     for (int i = 0; i < 8; ++i) {
       innerLoop(i);
+    }
+  }
+}
+
+void Board::sdlDisplay() {
+  for (int i = 0; i < 8; ++i) {
+    for (int j = 0; j < 8; ++j) {
+      
+      const auto *piece = getPieceAt({j, i});
+      if (!piece) {
+        std::cout << ".";
+      } else {
+        std::cout << piece->getLetter();
+      }
+
+      if (j == 7) {
+        std::cout << std::endl;
+      }
     }
   }
 }
@@ -675,6 +692,10 @@ void Board::storeValidMoves() {
         std::cout << position.first << " " << position.second << std::endl;
       }
 
+      // This isn't optimized at all. Every single board square is being
+      // iterated through for each piece.
+      // TODO: Update to check for piece type and then follow up with helper
+      // functions like checkPawnMove()
       for (int k = 0; k < 8; ++k) {
         for (int l = 0; l < 8; ++l) {
           CONTINUE_IF_VALID(position == Position({k, l}));

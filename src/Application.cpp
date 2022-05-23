@@ -11,12 +11,13 @@ bool argumentPassed(char **start, char **end, const std::string &toFind) {
 
 } // namespace
 
-Application::Application(int argc, char **argv) : m_board(Board()), m_game(Game()) {
+Application::Application(int argc, char **argv)
+    : m_window(Window()), m_appState(AppState::UNKNOWN) {
   // Passing "-l" as an additional argument loads the FEN stored in inc/load.fen
   if (argumentPassed(argv, argv + argc, "-l")) {
-    m_board.loadFromFen(m_game.parseFen());
+    m_window.loadFen();
   } else {
-    m_board.loadGame();
+    m_window.loadGame();
   }
 
   // Passing "-v" as an additional argument enables debug logs
@@ -26,57 +27,38 @@ Application::Application(int argc, char **argv) : m_board(Board()), m_game(Game(
 }
 
 int Application::run() {
-  while (m_game.isInProgress()) {
-    // Clear terminal (should investigate a better way to do this)
-    std::cout << "\033[H\033[2J\033[3J";
+  // To handle SDL events
+  SDL_Event e;
 
-    m_board.display(m_game.whoseTurnIsIt());
-    if (m_board.isKingInCheck(m_game.whoseTurnIsIt())) {
-      // Alert player if their king is in check
-      m_game.outputKingInCheck();
-    }
-    m_game.outputPlayerTurn();
+  bool quit = false;
 
-    std::cin >> m_moveInput.first >> m_moveInput.second;
-
-    // For timing and later optimization
-    auto startTurn = std::chrono::system_clock::now();
-
-    m_game.parseMove(m_moveInput, m_moveOutput);
-
-    if (m_board.isValidMove(m_game.whoseTurnIsIt(), m_moveOutput.first,
-                            m_moveOutput.second, false)) {
-      m_board.movePiece(m_moveOutput.first, m_moveOutput.second);
-      m_board.updateBoardState(m_moveOutput.first, m_moveOutput.second);
-
-      while (m_board.pawnToPromote()) {
-        m_game.outputPromotionRules();
-        std::cin >> m_promotionInput;
-        if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
-          m_board.promotePawn(m_promotionOutput);
-        }
+  while (!quit) {
+    while (SDL_PollEvent(&e)) {
+      // User closes window
+      switch (e.type) {
+      case SDL_QUIT:
+        quit = true;
+        break;
+      case SDL_MOUSEBUTTONDOWN:
+        m_window.handleMouseInput(e.button);
+        break;
+      case SDL_KEYDOWN:
+        m_window.handleKeyboardInput(e.key);
+        break;
       }
-
-      if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {
-        m_game.endWithVictory();
-      } else if (m_board.hasStalemateOccurred(m_game.whoseTurnIsItNot())) {
-        m_game.endWithDraw();
-      }
-
-      // When move is complete, turn is over
-      m_game.switchPlayers();
     }
 
-    auto endTurn = std::chrono::system_clock::now();
-    std::chrono::duration<double> diff = endTurn - startTurn;
-    if (k_verbose) {
-      std::cout << "DEBUG: Time to complete turn was " << diff.count()
-                << " seconds." << std::endl;
+    switch (m_appState) {
+    case AppState::GAME_IN_PROGRESS:
+      m_window.stepGame();
+      break;
+    case AppState::GAME_COMPLETE:
+      m_window.endGame();
+      break;
     }
+
+    m_window.render();
   }
-
-  m_board.display(m_game.whoseTurnIsIt());
-  m_game.whoWon();
 
   return 0;
 }
