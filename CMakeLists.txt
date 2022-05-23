@@ -21,4 +21,4 @@ PKG_SEARCH_MODULE(SDL2IMAGE REQUIRED SDL2_image>=2.0.0)
 include_directories(inc ${SDL2_INCLUDE_DIRS} ${SDL2IMAGE_INCLUDE_DIRS})
 
 add_executable(chess ${SOURCES})
-target_link_libraries(chess ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
+target_link_libraries(chess ${SDL2_LIBRARIES} ${SDL2IMAGE_LIBRARIES})
