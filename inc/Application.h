@@ -24,10 +24,10 @@ public:
   int run();
 
 private:
-  Window m_window;
-  AppState m_appState;
+  std::unique_ptr<Window> m_window = nullptr;
+  AppState m_appState = AppState::UNKNOWN;
 
-  bool m_legacyMode;
+  bool m_legacyMode = false;
 };
 
 #endif // APPLICATION_H

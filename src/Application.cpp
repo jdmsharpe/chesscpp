@@ -13,11 +13,18 @@ bool argumentPassed(char **start, char **end, const std::string &toFind) {
 
 Application::Application(int argc, char **argv)
     : m_appState(AppState::UNKNOWN) {
+  // Passing "--legacy" as an additional argument enables CLI legacy mode
+  if (argumentPassed(argv, argv + argc, "--legacy")) {
+    m_legacyMode = true;
+  }
+
+  m_window = std::make_unique<Window>(m_legacyMode);
+
   // Passing "-l" as an additional argument loads the FEN stored in inc/load.fen
   if (argumentPassed(argv, argv + argc, "-l")) {
-    m_window.loadFen();
+    m_window->loadFen();
   } else {
-    m_window.loadGame();
+    m_window->loadGame();
   }
 
   // Passing "-v" as an additional argument enables debug logs
@@ -25,12 +32,6 @@ Application::Application(int argc, char **argv)
     k_verbose = true;
   }
 
-  // Passing "--legacy" as an additional argument enables CLI legacy mode
-  if (argumentPassed(argv, argv + argc, "--legacy")) {
-    m_legacyMode = true;
-  }
-
-  m_window = Window(m_legacyMode);
   m_appState = AppState::GAME_IN_PROGRESS;
 }
 
@@ -50,23 +51,23 @@ int Application::run() {
           quit = true;
           break;
         case SDL_MOUSEBUTTONDOWN:
-          m_window.handleMouseInput(e.button);
+          m_window->handleMouseInput(e.button);
           break;
         case SDL_KEYDOWN:
-          m_window.handleKeyboardInput(e.key);
+          m_window->handleKeyboardInput(e.key);
           break;
         }
       }
 
-      m_window.render();
+      m_window->render();
     }
 
     switch (m_appState) {
     case AppState::GAME_IN_PROGRESS:
-      m_window.stepGame();
+      m_window->stepGame();
       break;
     case AppState::GAME_COMPLETE:
-      m_window.endGame();
+      m_window->endGame();
       break;
     }
   }
