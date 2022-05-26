@@ -2,7 +2,22 @@
 
 namespace {
 
+const std::string k_pieceImageFilepath = "../chess/inc/pieces.png";
+
 constexpr int k_pawnsPerSide = k_totalPieces / 4;
+
+constexpr SDL_Color k_evenColor = SDL_Color({118, 150, 86, SDL_ALPHA_OPAQUE});
+constexpr SDL_Color k_oddColor = SDL_Color({238, 238, 210, SDL_ALPHA_OPAQUE});
+
+constexpr int k_pieceWidth = 105;
+constexpr int k_pieceHeight = 101;
+
+constexpr int k_xPawnOffset = k_pieceWidth * 5;
+constexpr int k_xRookOffset = k_pieceWidth * 4;
+constexpr int k_xKnightOffset = k_pieceWidth * 3;
+constexpr int k_xBishopOffset = k_pieceWidth * 2;
+constexpr int k_xQueenOffset = k_pieceWidth;
+constexpr int k_xKingOffset = 0;
 
 constexpr std::array<Position, 8> k_potentialKnightPositions = {
     {{2, 1}, {2, -1}, {-2, -1}, {-2, 1}, {1, 2}, {1, -2}, {-1, -2}, {-1, 2}}};
@@ -21,6 +36,19 @@ Position getDirectionVector(const Position &start, const Position &end) {
 template <typename T> int sign(T val) { return (T(0) < val) - (val < T(0)); }
 
 } // namespace
+
+Board::~Board() {
+  SDL_DestroyTexture(m_pieceImageTexture);
+  m_pieceImageTexture = NULL;
+}
+
+void Board::loadTextures() {
+  // Load piece image as surface and convert to texture
+  SDL_Surface *pieceImageSurface = IMG_Load(k_pieceImageFilepath.c_str());
+  m_pieceImageTexture =
+      SDL_CreateTextureFromSurface(m_renderer, pieceImageSurface);
+  SDL_FreeSurface(pieceImageSurface);
+}
 
 void Board::loadGame() {
   for (int i = 0; i < k_pawnsPerSide; ++i) {
@@ -122,19 +150,73 @@ void Board::cliDisplay(Color color) {
 void Board::sdlDisplay() {
   for (int i = 0; i < 8; ++i) {
     for (int j = 0; j < 8; ++j) {
-      
-      const auto *piece = getPieceAt({j, i});
-      if (!piece) {
-        std::cout << ".";
-      } else {
-        std::cout << piece->getLetter();
-      }
-
-      if (j == 7) {
-        std::cout << std::endl;
-      }
+      ((i + j) % 2 == 0) ? sdlDrawSquare({j, i}, k_evenColor)
+                         : sdlDrawSquare({j, i}, k_oddColor);
     }
   }
+
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < k_totalPieces / 2; ++j) {
+      sdlDrawPiece(m_pieces[i][j].get());
+    }
+  }
+}
+
+void Board::sdlDrawSquare(const Position &position, const SDL_Color &sdlColor) {
+  SDL_Rect square;
+  square.w = k_squareWidth;
+  square.h = k_squareHeight;
+  SDL_SetRenderDrawColor(m_renderer, sdlColor.r, sdlColor.g, sdlColor.b,
+                         sdlColor.a);
+
+  square.x = position.first * k_squareWidth;
+  square.y = position.second * k_squareHeight;
+  SDL_RenderFillRect(m_renderer, &square);
+}
+
+void Board::sdlDrawPiece(const Piece *piece) {
+  RETURN_IF_NULL(piece);
+
+  int totalXOffset = 0;
+  int totalYOffset = 0;
+
+  if (piece->getColor() == Color::black) {
+    // Black is in top half of image
+    totalYOffset += k_pieceHeight;
+  }
+
+  if (dynamic_cast<const Pawn *>(piece)) {
+    totalXOffset += k_xPawnOffset;
+  } else if (dynamic_cast<const Knight *>(piece)) {
+    totalXOffset += k_xKnightOffset;
+  } else if (dynamic_cast<const Bishop *>(piece)) {
+    totalXOffset += k_xBishopOffset;
+  } else if (dynamic_cast<const Rook *>(piece)) {
+    totalXOffset += k_xRookOffset;
+  } else if (dynamic_cast<const Queen *>(piece)) {
+    totalXOffset += k_xQueenOffset;
+  } else if (dynamic_cast<const King *>(piece)) {
+    totalXOffset += k_xKingOffset;
+  } else {
+    // Type ???
+    return;
+  }
+
+  const Position position = piece->getPosition();
+
+  SDL_Rect pieceBox = {.x = totalXOffset,
+                       .y = totalYOffset,
+                       .w = k_pieceWidth,
+                       .h = k_pieceHeight};
+
+  SDL_Rect screenBox = {
+    .x = position.first * 100 - 10,
+    .y = position.second * 100 - 10,
+    .w = k_pieceWidth,
+    .h = k_pieceHeight
+  };
+
+  SDL_RenderCopy(m_renderer, m_pieceImageTexture, &pieceBox, &screenBox);
 }
 
 Piece *Board::getPieceAt(const Position &position) {
@@ -813,4 +895,18 @@ void Board::updateBoardState(const Position &start, const Position &end) {
       m_pawnToPromote = pieceThatMoved->getPosition();
     }
   }
+}
+
+bool Board::isInputValid(Color color, const Position& position) {
+  // Can't move nothing
+  if (!getPieceAt(position)) {
+    return false;
+  }
+
+  // Can't move opponent's pieces
+  if (getPieceAt(position)->getColor() != color) {
+    return false;
+  }
+
+  return true;
 }

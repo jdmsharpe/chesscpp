@@ -26,6 +26,8 @@ public:
 private:
   Window m_window;
   AppState m_appState;
+
+  bool m_legacyMode;
 };
 
 #endif // APPLICATION_H

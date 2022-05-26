@@ -8,17 +8,29 @@ namespace {
 // 16 ms is equivalent to ~60 FPS (really 62.5 FPS)
 constexpr int k_dt = 16; // ms
 
-// SDL window default dimensions
-constexpr int k_windowWidth = 1068;
-constexpr int k_windowHeight = 762;
+// Positions are zero-indexed, so 7 is the maximum index
+constexpr int k_finalRowColIndex = 7;
 
-constexpr int k_boxWidth = k_windowWidth / 16;
-constexpr int k_boxHeight = k_windowHeight / 16;
+Position convertMouseInputToPosition(const int x, const int y) {
+  return {x / k_squareWidth, std::abs((y / k_squareWidth))};
+}
 
 } // namespace
 
-// Boilerplate SDL code, for the most part
+Window::Window(const bool isLegacyMode)
+    : m_board(Board()), m_game(Game()), m_legacyMode(isLegacyMode) {
+  if (!m_legacyMode) {
+    open();
+  }
+}
 
+Window::~Window() {
+  if (!m_legacyMode) {
+    close();
+  }
+}
+
+// Boilerplate SDL code, for the most part
 void Window::open() {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     SDL_LogError(SDL_LOG_CATEGORY_ERROR,
@@ -50,6 +62,7 @@ void Window::open() {
   }
 
   m_board.setRenderer(m_sdlRenderer);
+  m_board.loadTextures();
 }
 
 void Window::close() {
@@ -63,15 +76,18 @@ void Window::close() {
   SDL_DestroyRenderer(m_sdlRenderer);
   m_sdlRenderer = NULL;
 
+  IMG_Quit();
   SDL_Quit();
 }
 
-void Window::render() const {
+void Window::render() {
   Uint32 frameStart = SDL_GetTicks();
 
-  // Black background
+  // Grey background
   SDL_SetRenderDrawColor(m_sdlRenderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(m_sdlRenderer);
+
+  m_board.sdlDisplay();
 
   SDL_RenderPresent(m_sdlRenderer);
 
@@ -82,8 +98,7 @@ void Window::render() const {
   if (k_dt > frameTime) {
     // Debug print to check actual elapsed time
     // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Elapsed frame time was %d
-    // ms.",
-    //             frameTime);
+    // ms.", frameTime);
     SDL_Delay(k_dt - frameTime);
   }
 }
@@ -94,62 +109,114 @@ void Window::handleMouseInput(const SDL_MouseButtonEvent &mbe) {
   int boardX;
   int boardY;
 
+  Uint32 buttons;
+
   if (mbe.button == SDL_BUTTON_LEFT) {
     SDL_GetMouseState(&x, &y);
 
-    if ((x >= 0 && x < k_windowWidth) && (y >= 0 && y < k_windowHeight)) {
-    }
+    // No inputs out of bounds allowed
+    RETURN_IF_VALID((x < 0 || x >= k_windowWidth) ||
+                    (y < 0 || y >= k_windowHeight));
+
+    SDL_Log("Mouse cursor is at %d, %d", x, y);
+    m_clickedPositionQueue.push(convertMouseInputToPosition(x, y));
   }
 }
 
 void Window::handleKeyboardInput(const SDL_KeyboardEvent &kbe) {}
 
 void Window::stepGame() {
-  // TODO: Deprecate original display function or put into verbose
-  m_board.cliDisplay(m_game.whoseTurnIsIt());
+  if (m_legacyMode) {
+    // Legacy mode uses CLI inputs
+    m_board.cliDisplay(m_game.whoseTurnIsIt());
 
-  if (m_board.isKingInCheck(m_game.whoseTurnIsIt())) {
-    // Alert player if their king is in check
-    m_game.outputKingInCheck();
-  }
+    if (m_board.isKingInCheck(m_game.whoseTurnIsIt())) {
+      // Alert player if their king is in check
+      m_game.outputKingInCheck();
+    }
 
-  m_game.outputPlayerTurn();
+    m_game.outputPlayerTurn();
 
-  std::cin >> m_moveInput.first >> m_moveInput.second;
+    std::cin >> m_moveInput.first >> m_moveInput.second;
 
-  // For timing and later optimization
-  auto startTurn = std::chrono::system_clock::now();
+    // For timing and later optimization
+    auto startTurn = std::chrono::system_clock::now();
 
-  m_game.parseMove(m_moveInput, m_moveOutput);
+    m_game.parseMove(m_moveInput, m_moveOutput);
 
-  if (m_board.isValidMove(m_game.whoseTurnIsIt(), m_moveOutput.first,
-                          m_moveOutput.second, false)) {
-    m_board.movePiece(m_moveOutput.first, m_moveOutput.second);
-    m_board.updateBoardState(m_moveOutput.first, m_moveOutput.second);
+    if (m_board.isValidMove(m_game.whoseTurnIsIt(), m_moveOutput.first,
+                            m_moveOutput.second, false)) {
+      m_board.movePiece(m_moveOutput.first, m_moveOutput.second);
+      m_board.updateBoardState(m_moveOutput.first, m_moveOutput.second);
 
-    while (m_board.pawnToPromote()) {
-      m_game.outputPromotionRules();
-      std::cin >> m_promotionInput;
-      if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
-        m_board.promotePawn(m_promotionOutput);
+      while (m_board.pawnToPromote()) {
+        m_game.outputPromotionRules();
+        std::cin >> m_promotionInput;
+        if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
+          m_board.promotePawn(m_promotionOutput);
+        }
+      }
+
+      if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {
+        m_game.endWithVictory();
+      } else if (m_board.hasStalemateOccurred(m_game.whoseTurnIsItNot())) {
+        m_game.endWithDraw();
+      }
+
+      // When move is complete, turn is over
+      m_game.switchPlayers();
+    }
+
+    auto endTurn = std::chrono::system_clock::now();
+    std::chrono::duration<double> diff = endTurn - startTurn;
+    if (k_verbose) {
+      std::cout << "DEBUG: Time to complete turn was " << diff.count()
+                << " seconds." << std::endl;
+    }
+  } else {
+    // Standard mode uses SDL for graphics
+    if (m_clickedPositionQueue.size() < 1) {
+      // No input to process
+      return;
+    }
+
+    if (!m_board.isInputValid(m_game.whoseTurnIsIt(),
+                              m_clickedPositionQueue.front())) {
+      m_clickedPositionQueue.pop();
+      return;
+    }
+
+    if (m_clickedPositionQueue.size() == 2) {
+      // LMB was clicked twice and two valid positions were stored
+      Position firstPosition = m_clickedPositionQueue.front();
+      m_clickedPositionQueue.pop();
+
+      Position secondPosition = m_clickedPositionQueue.front();
+      m_clickedPositionQueue.pop();
+
+      if (m_board.isValidMove(m_game.whoseTurnIsIt(), firstPosition,
+                              secondPosition, false)) {
+        m_board.movePiece(firstPosition, secondPosition);
+        m_board.updateBoardState(firstPosition, secondPosition);
+
+        while (m_board.pawnToPromote()) {
+          m_game.outputPromotionRules();
+          std::cin >> m_promotionInput;
+          if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
+            m_board.promotePawn(m_promotionOutput);
+          }
+        }
+
+        if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {
+          m_game.endWithVictory();
+        } else if (m_board.hasStalemateOccurred(m_game.whoseTurnIsItNot())) {
+          m_game.endWithDraw();
+        }
+
+        // When move is complete, turn is over
+        m_game.switchPlayers();
       }
     }
-
-    if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {
-      m_game.endWithVictory();
-    } else if (m_board.hasStalemateOccurred(m_game.whoseTurnIsItNot())) {
-      m_game.endWithDraw();
-    }
-
-    // When move is complete, turn is over
-    m_game.switchPlayers();
-  }
-
-  auto endTurn = std::chrono::system_clock::now();
-  std::chrono::duration<double> diff = endTurn - startTurn;
-  if (k_verbose) {
-    std::cout << "DEBUG: Time to complete turn was " << diff.count()
-              << " seconds." << std::endl;
   }
 }
 

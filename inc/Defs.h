@@ -12,6 +12,15 @@
 
 static bool k_verbose = false;
 
+// SDL window default dimensions
+constexpr int k_windowWidth = 800;
+constexpr int k_windowHeight = 800;
+
+// SDL board square dimensions
+constexpr int k_squareWidth = k_windowWidth / 8;
+constexpr int k_squareHeight = k_windowHeight / 8;
+
+// Chess definitions
 constexpr int k_totalPieces = 32;
 constexpr int k_numCastleOptions = 4;
 
