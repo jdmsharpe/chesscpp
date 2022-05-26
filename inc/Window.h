@@ -28,6 +28,9 @@ public:
   void endGame();
 
 private:
+  void stepSdlGame();
+  void stepLegacyGame();
+
   Board m_board;
   Game m_game;
 
