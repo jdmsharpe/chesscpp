@@ -7,13 +7,19 @@
     return;                                                                    \
   }
 
+// Return if routine returns true
+#define RETURN_IF_VALID(routine)                                               \
+  if (routine) {                                                               \
+    return;                                                                    \
+  }
+
 // Continue loop if pointer is null
 #define CONTINUE_IF_NULL(ptr)                                                  \
   if (!ptr) {                                                                  \
     continue;                                                                  \
   }
 
-// Continue loop if
+// Continue loop if pointer is not null
 #define CONTINUE_IF_VALID(ptr)                                                 \
   if (ptr) {                                                                   \
     continue;                                                                  \

@@ -11,12 +11,14 @@ class Board {
 public:
   Board() {}
 
-  ~Board() {}
+  ~Board();
 
   inline void setRenderer(SDL_Renderer *renderer) {
     RETURN_IF_NULL(renderer);
     m_renderer = renderer;
   }
+
+  void loadTextures();
 
   void loadGame();
 
@@ -46,7 +48,13 @@ public:
 
   void updateBoardState(const Position &start, const Position &end);
 
+  bool isInputValid(Color color, const Position& position);
+
 private:
+  void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor);
+
+  void sdlDrawPiece(const Piece *piece);
+
   Piece *getPieceAt(const Position &position);
 
   std::pair<size_t, size_t> getIndexOfPiece(const Piece *piece);
@@ -66,7 +74,8 @@ private:
 
   void setKingCastleStatus(Color color, CastleSide side);
 
-  SDL_Renderer *m_renderer = nullptr;
+  SDL_Renderer *m_renderer = NULL;
+  SDL_Texture *m_pieceImageTexture = NULL;
 
   using Pieces =
       std::array<std::array<std::unique_ptr<Piece>, k_totalPieces / 2>, 2>;

@@ -12,7 +12,7 @@ bool argumentPassed(char **start, char **end, const std::string &toFind) {
 } // namespace
 
 Application::Application(int argc, char **argv)
-    : m_window(Window()), m_appState(AppState::UNKNOWN) {
+    : m_appState(AppState::UNKNOWN) {
   // Passing "-l" as an additional argument loads the FEN stored in inc/load.fen
   if (argumentPassed(argv, argv + argc, "-l")) {
     m_window.loadFen();
@@ -24,6 +24,14 @@ Application::Application(int argc, char **argv)
   if (argumentPassed(argv, argv + argc, "-v")) {
     k_verbose = true;
   }
+
+  // Passing "--legacy" as an additional argument enables CLI legacy mode
+  if (argumentPassed(argv, argv + argc, "--legacy")) {
+    m_legacyMode = true;
+  }
+
+  m_window = Window(m_legacyMode);
+  m_appState = AppState::GAME_IN_PROGRESS;
 }
 
 int Application::run() {
@@ -33,19 +41,24 @@ int Application::run() {
   bool quit = false;
 
   while (!quit) {
-    while (SDL_PollEvent(&e)) {
-      // User closes window
-      switch (e.type) {
-      case SDL_QUIT:
-        quit = true;
-        break;
-      case SDL_MOUSEBUTTONDOWN:
-        m_window.handleMouseInput(e.button);
-        break;
-      case SDL_KEYDOWN:
-        m_window.handleKeyboardInput(e.key);
-        break;
+    // All SDL tasks are exclusive to new mode
+    if (!m_legacyMode) {
+      while (SDL_PollEvent(&e)) {
+        // User closes window
+        switch (e.type) {
+        case SDL_QUIT:
+          quit = true;
+          break;
+        case SDL_MOUSEBUTTONDOWN:
+          m_window.handleMouseInput(e.button);
+          break;
+        case SDL_KEYDOWN:
+          m_window.handleKeyboardInput(e.key);
+          break;
+        }
       }
+
+      m_window.render();
     }
 
     switch (m_appState) {
@@ -56,8 +69,6 @@ int Application::run() {
       m_window.endGame();
       break;
     }
-
-    m_window.render();
   }
 
   return 0;
