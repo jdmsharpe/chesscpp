@@ -181,11 +181,11 @@ void Window::stepSdlGame() {
   // Standard mode uses SDL for graphics
   if (m_clickedPositionQueue.size() < 1) {
     // No input to process
+    m_board.clearHighlight();
     return;
   }
 
-  if (!m_board.isInputValid(m_game.whoseTurnIsIt(),
-                            m_clickedPositionQueue)) {
+  if (!m_board.isInputValid(m_game.whoseTurnIsIt(), m_clickedPositionQueue)) {
     m_clickedPositionQueue.pop();
     return;
   }
@@ -208,8 +208,8 @@ void Window::stepSdlGame() {
   Position secondPosition = m_clickedPositionQueue.front();
   m_clickedPositionQueue.pop();
 
-  if (m_board.isValidMove(m_game.whoseTurnIsIt(), firstPosition,
-                          secondPosition, false)) {
+  if (m_board.isValidMove(m_game.whoseTurnIsIt(), firstPosition, secondPosition,
+                          false)) {
     m_board.movePiece(firstPosition, secondPosition);
     m_board.updateBoardState(firstPosition, secondPosition);
 

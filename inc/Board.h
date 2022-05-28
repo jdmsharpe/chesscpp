@@ -22,7 +22,7 @@ public:
 
   void loadGame();
 
-  void loadFromFen(const BoardLayout &layout);
+  void loadFromFen(const LumpedBoardAndGameState &state);
 
   void cliDisplay(Color color);
 
@@ -53,6 +53,11 @@ public:
   void highlightPotentialMoves(const Position &position);
 
   void highlightKingInCheck(Color color);
+
+  inline void clearHighlight() {
+    m_movesToHighlight.clear();
+    m_pieceToHighlight.reset();
+  }
 
 private:
   void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor);

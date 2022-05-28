@@ -17,7 +17,7 @@ public:
 
   // Disallow copy and assign
   Application(const Application &) = delete;
-  void operator=(const Application&) = delete;
+  void operator=(const Application &) = delete;
 
   int run();
 
