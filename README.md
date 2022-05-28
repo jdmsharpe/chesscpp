@@ -2,6 +2,8 @@
 
 Nothing fancy, just a naive implementation as a personal project.
 
+![Chess GIF][https://media2.giphy.com/media/aA8bACmZSEhHIdxsfU/giphy.gif?cid=790b761186235a808b461eff10cc757c9a1679cbd330530d&rid=giphy.gif&ct=g]
+
 ## Build Instructions
 1. Requires cmake: `sudo apt-get install cmake`
 2. Clone repo
