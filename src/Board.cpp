@@ -15,7 +15,8 @@ constexpr SDL_Color k_movementOptionColor = SDL_Color({0, 255, 0, 128});
 // Red
 constexpr SDL_Color k_checkColor = SDL_Color({255, 0, 0, 128});
 // Yellow
-constexpr SDL_Color k_selectedPieceColor = SDL_Color({255, 255, 0, 128});;
+constexpr SDL_Color k_selectedPieceColor = SDL_Color({255, 255, 0, 128});
+;
 
 constexpr int k_pieceWidth = 105;
 constexpr int k_pieceHeight = 105;
@@ -90,7 +91,7 @@ void Board::loadGame() {
   m_pieces[0][k_pawnsPerSide + 7] = makePiece<King>(Color::black, {4, 7});
 }
 
-void Board::loadFromFen(const BoardLayout &layout) {
+void Board::loadFromFen(const LumpedBoardAndGameState &state) {
   // Wow, templated lambdas! C++20 is hot stuff
   auto createPiecesFromContainer =
       [this]<class T>(const PieceContainer &container, int offset) {
@@ -114,20 +115,20 @@ void Board::loadFromFen(const BoardLayout &layout) {
 
   // I have to be real with you, though, this syntax is an abomination
   // Even Intellisense is mad about it
-  createPiecesFromContainer.template operator()<Pawn>(layout.pawns, 0);
-  createPiecesFromContainer.template operator()<Rook>(layout.rooks,
+  createPiecesFromContainer.template operator()<Pawn>(state.pawns, 0);
+  createPiecesFromContainer.template operator()<Rook>(state.rooks,
                                                       k_pawnsPerSide);
-  createPiecesFromContainer.template operator()<Knight>(layout.knights,
+  createPiecesFromContainer.template operator()<Knight>(state.knights,
                                                         k_pawnsPerSide + 2);
-  createPiecesFromContainer.template operator()<Bishop>(layout.bishops,
+  createPiecesFromContainer.template operator()<Bishop>(state.bishops,
                                                         k_pawnsPerSide + 4);
-  createPiecesFromContainer.template operator()<Queen>(layout.queens,
+  createPiecesFromContainer.template operator()<Queen>(state.queens,
                                                        k_pawnsPerSide + 6);
-  createPiecesFromContainer.template operator()<King>(layout.kings,
+  createPiecesFromContainer.template operator()<King>(state.kings,
                                                       k_pawnsPerSide + 7);
 
-  m_castleStatus = layout.castleStatus;
-  m_enPassantSquare = layout.enPassantTarget;
+  m_castleStatus = state.castleStatus;
+  m_enPassantSquare = state.enPassantTarget;
 }
 
 void Board::cliDisplay(Color color) {
@@ -503,6 +504,11 @@ void Board::movePiece(const Position &start, const Position &end) {
   // This helps in a surprising number of ways
   RETURN_IF_NULL(pieceToMove);
 
+  // Update flag tracking if piece has moved yet
+  if (!pieceToMove->hasMoved()) {
+    pieceToMove->setHasMoved(true);
+  }
+
   // All cases should be checked at this point
   // Capturing correctly is assumed
   if (pieceAtDestination) {
@@ -536,9 +542,9 @@ bool Board::isPieceBlockingBishop(const Position &start, const Position &end) {
 bool Board::isPieceBlockingRook(const Position &start, const Position &end) {
   Position directionVector = getDirectionVector(start, end);
   // One component of vector will be zero
-  int magnitude;
-  bool movingVertically;
-  Piece *potentialPiece;
+  int magnitude = 0;
+  bool movingVertically = false;
+  Piece *potentialPiece = nullptr;
 
   if (directionVector.first == 0) {
     magnitude = std::abs(directionVector.second);
@@ -810,36 +816,136 @@ bool Board::moveAndCheckForCheck(Color color, const Position &start,
 
 void Board::storeValidMoves() {
   if (k_verbose) {
-    std::cout << "DEBUG: Legal moves for each piece:" << std::endl;
+    std::cout << "Legal moves for each piece:" << std::endl;
   }
+
+  // Initialize container to hold moves before they are added
+  Moves moveStorage;
+
   for (int i = 0; i < 2; ++i) {
     for (int j = 0; j < k_totalPieces / 2; ++j) {
-      CONTINUE_IF_NULL(m_pieces[i][j]);
+      moveStorage.clear();
 
-      const auto &color = m_pieces[i][j]->getColor();
-      const auto &position = m_pieces[i][j]->getPosition();
+      auto *pieceToCheck = m_pieces[i][j].get();
+
+      CONTINUE_IF_NULL(pieceToCheck);
+
+      const auto &color = pieceToCheck->getColor();
+      const auto &position = pieceToCheck->getPosition();
 
       if (k_verbose) {
         std::cout << std::endl;
-        std::cout << m_pieces[i][j]->getLetter() << std::endl;
+        std::cout << pieceToCheck->getLetter() << std::endl;
         std::cout << position.first << " " << position.second << std::endl;
       }
 
-      // This isn't optimized at all. Every single board square is being
-      // iterated through for each piece.
-      // TODO: Update to check for piece type and then follow up with helper
-      // functions like checkPawnMove()
-      for (int k = 0; k < 8; ++k) {
-        for (int l = 0; l < 8; ++l) {
-          CONTINUE_IF_VALID(position == Position({k, l}));
+      // Check piece type and add all possible moves to storage
+      if (dynamic_cast<Pawn *>(pieceToCheck)) {
+        int sign = (pieceToCheck->getColor() == Color::white) ? 1 : -1;
 
-          if (isValidMove(color, position, Position({k, l}), true)) {
-            m_pieces[i][j]->addValidMove({k, l});
-            m_allValidMoves.emplace_back(color, Position({k, l}));
+        // Pawns have 4 potential moves maximum
+        // and they also have en passant, if applicable
+        moveStorage.push_back(
+            {color, {position.first, position.second + (sign * 2)}});
+        moveStorage.push_back(
+            {color, {position.first, position.second + sign}});
+        moveStorage.push_back(
+            {color, {position.first - 1, position.second + sign}});
+        moveStorage.push_back(
+            {color, {position.first + 1, position.second + sign}});
+        if (m_enPassantSquare.has_value()) {
+          moveStorage.push_back({color, m_enPassantSquare.value()});
+        }
+      } else if (dynamic_cast<Knight *>(pieceToCheck)) {
+        // Knights have 8 potential moves maximum
+        for (int i = 0; i < k_potentialKnightPositions.size(); ++i) {
+          moveStorage.push_back(
+              {color,
+               {position.first + k_potentialKnightPositions[i].first,
+                position.second + k_potentialKnightPositions[i].second}});
+        }
+      } else if (dynamic_cast<Bishop *>(pieceToCheck)) {
+        // Bishops have... well, now we have to check everything
+        for (int i = 1; i < 8; ++i) {
+          moveStorage.push_back(
+              {color, {position.first + i, position.second + i}});
+          moveStorage.push_back(
+              {color, {position.first - i, position.second + i}});
+          moveStorage.push_back(
+              {color, {position.first - i, position.second - i}});
+          moveStorage.push_back(
+              {color, {position.first + i, position.second - i}});
+        }
+      } else if (dynamic_cast<Rook *>(pieceToCheck)) {
+        for (int i = 1; i < 8; ++i) {
+          moveStorage.push_back({color, {position.first + i, position.second}});
+          moveStorage.push_back({color, {position.first, position.second + i}});
+          moveStorage.push_back({color, {position.first - i, position.second}});
+          moveStorage.push_back({color, {position.first, position.second - i}});
+        }
+      } else if (dynamic_cast<Queen *>(pieceToCheck)) {
+        // Bishop/rook case combined as always
+        for (int i = 1; i < 8; ++i) {
+          moveStorage.push_back({color, {position.first + i, position.second}});
+          moveStorage.push_back({color, {position.first, position.second + i}});
+          moveStorage.push_back({color, {position.first - i, position.second}});
+          moveStorage.push_back({color, {position.first, position.second - i}});
+          moveStorage.push_back(
+              {color, {position.first + i, position.second + i}});
+          moveStorage.push_back(
+              {color, {position.first - i, position.second + i}});
+          moveStorage.push_back(
+              {color, {position.first - i, position.second - i}});
+          moveStorage.push_back(
+              {color, {position.first + i, position.second - i}});
+        }
+      } else if (dynamic_cast<King *>(pieceToCheck)) {
+        // Kings have 8 potential moves maximum, except they can also castle
+        moveStorage.push_back({color, {position.first + 1, position.second}});
+        moveStorage.push_back({color, {position.first, position.second + 1}});
+        moveStorage.push_back({color, {position.first - 1, position.second}});
+        moveStorage.push_back({color, {position.first, position.second - 1}});
+        moveStorage.push_back(
+            {color, {position.first + 1, position.second + 1}});
+        moveStorage.push_back(
+            {color, {position.first - 1, position.second + 1}});
+        moveStorage.push_back(
+            {color, {position.first - 1, position.second - 1}});
+        moveStorage.push_back(
+            {color, {position.first + 1, position.second - 1}});
 
-            if (k_verbose) {
-              std::cout << k << " " << l << std::endl;
-            }
+        if (color == Color::black) {
+          if (m_castleStatus[k_blackKingsideIndex]) {
+            moveStorage.push_back(
+                {color, {position.first + 2, position.second}});
+          }
+          if (m_castleStatus[k_blackQueensideIndex]) {
+            moveStorage.push_back(
+                {color, {position.first - 2, position.second}});
+          }
+        } else {
+          if (m_castleStatus[k_whiteKingsideIndex]) {
+            moveStorage.push_back(
+                {color, {position.first + 2, position.second}});
+          }
+          if (m_castleStatus[k_whiteQueensideIndex]) {
+            moveStorage.push_back(
+                {color, {position.first - 2, position.second}});
+          }
+        }
+      }
+
+      // See if stored moves are actually valid, and if they are,
+      // add them to both the board's and piece's of valid moves
+      for (size_t i = 0; i < moveStorage.size(); ++i) {
+        const auto &potentialMove = moveStorage.at(i).second;
+        if (isValidMove(color, position, potentialMove, true)) {
+          pieceToCheck->addValidMove(potentialMove);
+          m_allValidMoves.emplace_back(color, potentialMove);
+
+          if (k_verbose) {
+            std::cout << potentialMove.first << " " << potentialMove.second
+                      << std::endl;
           }
         }
       }
@@ -977,8 +1083,7 @@ bool Board::isInputValid(Color color, const std::queue<Position> &positions) {
 
 void Board::highlightPotentialMoves(const Position &position) {
   // Clear storage container first
-  m_movesToHighlight.clear();
-  m_pieceToHighlight.reset();
+  clearHighlight();
 
   auto *pieceToHighlight = getPieceAt(position);
 

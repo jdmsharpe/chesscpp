@@ -13,7 +13,7 @@ public:
   virtual bool isValidMove(const Position &move) const;
 
   inline void addValidMove(const Position &move) {
-    m_validMoves.push_back(move);
+    m_validMoves.emplace_back(move);
   }
 
   inline void clearValidMoves() { m_validMoves.clear(); }
@@ -22,13 +22,7 @@ public:
 
   inline Position getPosition() const { return m_position; }
 
-  inline void setPosition(const Position &position) {
-    if (!m_hasMoved) {
-      m_hasMoved = true;
-    }
-
-    m_position = position;
-  }
+  inline void setPosition(const Position &position) { m_position = position; }
 
   inline Color getColor() const { return m_color; }
 
@@ -37,6 +31,8 @@ public:
   inline char getLetter() const { return m_letter; }
 
   inline bool hasMoved() const { return m_hasMoved; }
+
+  inline void setHasMoved(const bool hasMoved) { m_hasMoved = hasMoved; }
 
 protected:
   Position m_position;

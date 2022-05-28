@@ -4,6 +4,8 @@
 
 namespace {
 
+constexpr long k_counterMod = 10;
+
 // Parse CLI arguments
 bool argumentPassed(char **start, char **end, const std::string &toFind) {
   return std::find(start, end, toFind) != end;
@@ -87,9 +89,10 @@ int Application::run() {
 
     runEnd = std::chrono::system_clock::now();
     diff = runEnd - runStart;
-    if (k_verbose) {
-      SDL_Log("Time to complete run() was %.2f ms.", diff.count() * 1000);
+    if (k_verbose && (k_counter % k_counterMod == 0)) {
+      printf("Time to complete run() was %.2f ms.\n", diff.count() * 1000);
     }
+    ++k_counter;
   }
 
   return 0;

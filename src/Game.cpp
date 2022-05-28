@@ -119,10 +119,10 @@ void Game::outputKingInCheck() const {
   std::cout << currentPlayer << "'s king is in check!" << std::endl;
 }
 
-BoardLayout Game::parseFen() {
+LumpedBoardAndGameState Game::parseFen() {
   std::string line = "";
   std::ifstream ifs;
-  BoardLayout layout;
+  LumpedBoardAndGameState state;
 
   ifs.open(k_fenFilename);
   if (ifs.is_open()) {
@@ -161,17 +161,17 @@ BoardLayout Game::parseFen() {
               }
 
               if (token == 'p' || token == 'P') {
-                layout.pawns.push_back({color, currentPos});
+                state.pawns.emplace_back(color, currentPos);
               } else if (token == 'n' || token == 'N') {
-                layout.knights.push_back({color, currentPos});
+                state.knights.emplace_back(color, currentPos);
               } else if (token == 'b' || token == 'B') {
-                layout.bishops.push_back({color, currentPos});
+                state.bishops.emplace_back(color, currentPos);
               } else if (token == 'r' || token == 'R') {
-                layout.rooks.push_back({color, currentPos});
+                state.rooks.emplace_back(color, currentPos);
               } else if (token == 'q' || token == 'Q') {
-                layout.queens.push_back({color, currentPos});
+                state.queens.emplace_back(color, currentPos);
               } else if (token == 'k' || token == 'K') {
-                layout.kings.push_back({color, currentPos});
+                state.kings.emplace_back(color, currentPos);
               }
 
               ++k;
@@ -191,8 +191,8 @@ BoardLayout Game::parseFen() {
         }
 
         if (i == k_whoseTurnIndex) {
-          layout.whoseTurn = (tokens[i] == "w") ? Color::white : Color::black;
-          setTurn(layout.whoseTurn);
+          state.whoseTurn = (tokens[i] == "w") ? Color::white : Color::black;
+          setTurn(state.whoseTurn);
           continue;
         }
 
@@ -205,13 +205,13 @@ BoardLayout Game::parseFen() {
                 std::regex_search(tokens[i], k_fenCastle)) {
               for (const auto &token : tokens[i]) {
                 if (token == 'k') {
-                  layout.castleStatus.set(k_blackKingsideIndex, true);
+                  state.castleStatus.set(k_blackKingsideIndex, true);
                 } else if (token == 'K') {
-                  layout.castleStatus.set(k_whiteKingsideIndex, true);
+                  state.castleStatus.set(k_whiteKingsideIndex, true);
                 } else if (token == 'q') {
-                  layout.castleStatus.set(k_blackQueensideIndex, true);
+                  state.castleStatus.set(k_blackQueensideIndex, true);
                 } else if (token == 'Q') {
-                  layout.castleStatus.set(k_whiteQueensideIndex, true);
+                  state.castleStatus.set(k_whiteQueensideIndex, true);
                 }
               }
             }
@@ -220,13 +220,13 @@ BoardLayout Game::parseFen() {
 
         if (i == k_enPassantIndex) {
           if (tokens[i] == "-") {
-            layout.enPassantTarget = std::nullopt;
+            state.enPassantTarget = std::nullopt;
             continue;
           } else {
             if (tokens[i].length() == 2 &&
                 std::regex_search(tokens[i], k_legalMove)) {
-              layout.enPassantTarget = {k_letterToIndex.at(tokens[i][0]),
-                                        k_numberToIndex.at(tokens[i][1])};
+              state.enPassantTarget = {k_letterToIndex.at(tokens[i][0]),
+                                       k_numberToIndex.at(tokens[i][1])};
               continue;
             }
           }
@@ -235,7 +235,7 @@ BoardLayout Game::parseFen() {
         if (i == k_halfMoveIndex) {
           size_t halfMove = 0;
           if (sscanf(tokens[i].c_str(), "%zu", &halfMove) == 1) {
-            layout.halfMoveNum = halfMove;
+            state.halfMoveNum = halfMove;
             continue;
           }
         }
@@ -243,7 +243,7 @@ BoardLayout Game::parseFen() {
         if (i == k_turnIndex) {
           size_t turn = 0;
           if (sscanf(tokens[i].c_str(), "%zu", &turn) == 1) {
-            layout.turnNum = turn;
+            state.turnNum = turn;
             continue;
           }
         }
@@ -252,5 +252,5 @@ BoardLayout Game::parseFen() {
     ifs.close();
   }
 
-  return layout;
+  return state;
 }

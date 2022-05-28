@@ -14,7 +14,11 @@
 #include <utility>
 #include <vector>
 
-static bool k_verbose = false;
+// Enables debug logging
+static volatile bool k_verbose = false;
+
+// Increments after every application run() call
+static volatile long k_counter = 0;
 
 // SDL window default dimensions
 constexpr int k_windowWidth = 800;
@@ -32,25 +36,30 @@ enum class Color { black, white };
 enum class PieceType { none, pawn, knight, bishop, rook, queen, king };
 enum class CastleSide { kingside, queenside };
 
+// Zero-indexed representation of a square's position
 typedef std::pair<int, int> Position;
 
 using PieceContainer = std::vector<std::pair<Color, Position>>;
 using CastleStatus = std::bitset<k_numCastleOptions>;
-struct BoardLayout {
+
+// Representation of the entirety of both board and game states.
+struct LumpedBoardAndGameState {
+  // Board states
   PieceContainer pawns;
   PieceContainer knights;
   PieceContainer bishops;
   PieceContainer rooks;
   PieceContainer queens;
   PieceContainer kings;
-
-  Color whoseTurn;
   // In order: black kingside,
   //           black queenside,
   //           white kingside,
   //           white queenside
   CastleStatus castleStatus;
   std::optional<Position> enPassantTarget;
+
+  // Game states
+  Color whoseTurn;
   size_t halfMoveNum;
   size_t turnNum;
 };
