@@ -1,6 +1,8 @@
 # Chess in C++
 
-Nothing fancy, just a naive implementation as a personal project.
+Chess program that allows two players to play a game. The application has both a CLI and graphical interface toggled through an additional argument. I originally wrote this purely for CLI, but it's really hard to see moves effectively, so I updated this to use SDL as I'm familiar with that library.
+
+At some point, I might try to write an AI so this can be fully 1-player.
 
 ![Chess GIF](https://media2.giphy.com/media/aA8bACmZSEhHIdxsfU/giphy.gif?cid=790b761186235a808b461eff10cc757c9a1679cbd330530d&rid=giphy.gif&ct=g)
 
@@ -24,4 +26,4 @@ The following options can be passed as an additional argument when running the e
 * Investigate edge cases
 * Update unit tests for Board
 * FEN output of arbitrary board state (stretch goal)
-* AI? (stretch goal)
+* AI (stretch goal)
