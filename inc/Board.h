@@ -48,7 +48,11 @@ public:
 
   void updateBoardState(const Position &start, const Position &end);
 
-  bool isInputValid(Color color, const Position& position);
+  bool isInputValid(Color color, const std::queue<Position> &positions);
+
+  void highlightPotentialMoves(const Position &position);
+
+  void highlightKingInCheck(Color color);
 
 private:
   void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor);
@@ -83,13 +87,12 @@ private:
 
   using Moves = PieceContainer;
   Moves m_allValidMoves = {};
+  Moves m_movesToHighlight = {};
+  std::optional<Position> m_kingToHighlight = std::nullopt;
 
   CastleStatus m_castleStatus = CastleStatus().set();
   std::optional<Position> m_enPassantSquare = std::nullopt;
   std::optional<Position> m_pawnToPromote = std::nullopt;
-
-  size_t m_halfMoveNum = 0;
-  size_t m_turnNum = 1;
 };
 
 #endif // BOARD_H

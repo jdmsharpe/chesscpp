@@ -8,15 +8,20 @@ constexpr int k_pawnsPerSide = k_totalPieces / 4;
 
 constexpr SDL_Color k_evenColor = SDL_Color({118, 150, 86, SDL_ALPHA_OPAQUE});
 constexpr SDL_Color k_oddColor = SDL_Color({238, 238, 210, SDL_ALPHA_OPAQUE});
+constexpr SDL_Color k_movementOptionColor = SDL_Color({0, 255, 0, 128});
+constexpr SDL_Color k_checkColor = SDL_Color({255, 0, 0, 128});
 
 constexpr int k_pieceWidth = 105;
-constexpr int k_pieceHeight = 101;
+constexpr int k_pieceHeight = 105;
 
-constexpr int k_xPawnOffset = k_pieceWidth * 5;
-constexpr int k_xRookOffset = k_pieceWidth * 4;
-constexpr int k_xKnightOffset = k_pieceWidth * 3;
-constexpr int k_xBishopOffset = k_pieceWidth * 2;
-constexpr int k_xQueenOffset = k_pieceWidth;
+constexpr int k_screenBoxSize = 100;
+constexpr int k_screenBoxOffset = 5;
+
+constexpr int k_xPawnOffset = 529;
+constexpr int k_xRookOffset = 425;
+constexpr int k_xKnightOffset = 317;
+constexpr int k_xBishopOffset = 211;
+constexpr int k_xQueenOffset = 105;
 constexpr int k_xKingOffset = 0;
 
 constexpr std::array<Position, 8> k_potentialKnightPositions = {
@@ -116,8 +121,6 @@ void Board::loadFromFen(const BoardLayout &layout) {
 
   m_castleStatus = layout.castleStatus;
   m_enPassantSquare = layout.enPassantTarget;
-  m_halfMoveNum = layout.halfMoveNum;
-  m_turnNum = layout.turnNum;
 }
 
 void Board::cliDisplay(Color color) {
@@ -148,6 +151,7 @@ void Board::cliDisplay(Color color) {
 }
 
 void Board::sdlDisplay() {
+  // Render board squares
   for (int i = 0; i < 8; ++i) {
     for (int j = 0; j < 8; ++j) {
       ((i + j) % 2 == 0) ? sdlDrawSquare({j, i}, k_evenColor)
@@ -155,6 +159,17 @@ void Board::sdlDisplay() {
     }
   }
 
+  // Render valid moves for piece that was clicked
+  for (size_t i = 0; i < m_movesToHighlight.size(); ++i) {
+    sdlDrawSquare(m_movesToHighlight.at(i).second, k_movementOptionColor);
+  }
+
+  // Render king's square with a warning color if in check
+  if (m_kingToHighlight.has_value()) {
+    sdlDrawSquare(m_kingToHighlight.value(), k_checkColor);
+  }
+
+  // Render all pieces
   for (int i = 0; i < 2; ++i) {
     for (int j = 0; j < k_totalPieces / 2; ++j) {
       sdlDrawPiece(m_pieces[i][j].get());
@@ -209,12 +224,10 @@ void Board::sdlDrawPiece(const Piece *piece) {
                        .w = k_pieceWidth,
                        .h = k_pieceHeight};
 
-  SDL_Rect screenBox = {
-    .x = position.first * 100 - 10,
-    .y = position.second * 100 - 10,
-    .w = k_pieceWidth,
-    .h = k_pieceHeight
-  };
+  SDL_Rect screenBox = {.x = (position.first * k_screenBoxSize) - k_screenBoxOffset,
+                        .y = (position.second * k_screenBoxSize) - k_screenBoxOffset,
+                        .w = k_pieceWidth,
+                        .h = k_pieceHeight};
 
   SDL_RenderCopy(m_renderer, m_pieceImageTexture, &pieceBox, &screenBox);
 }
@@ -609,8 +622,7 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
     }
     positionToCheck = {position.first - i, position.second + i};
 
-    auto *potentialAttackerNorthwest =
-        getPieceAt(positionToCheck);
+    auto *potentialAttackerNorthwest = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerNorthwest);
 
@@ -703,7 +715,30 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
     }
   }
 
-  // This needs a king case, I think...
+  // King case
+  {
+    for (int i = -1; i < 1; ++i) {
+      auto *potentialAttackerHorizontal =
+          getPieceAt({position.first + i, position.second});
+      auto *potentialAttackerVertical =
+          getPieceAt({position.first, position.second + i});
+      auto *potentialAttackerUpwardDiagonal =
+          getPieceAt({position.first + i, position.second + i});
+      auto *potentialAttackerDownwardDiagonal =
+          getPieceAt({position.first + i, position.second - i});
+
+      if ((dynamic_cast<King *>(potentialAttackerHorizontal) &&
+           (potentialAttackerHorizontal->getColor() != color)) ||
+          (dynamic_cast<King *>(potentialAttackerVertical) &&
+           (potentialAttackerVertical->getColor() != color)) ||
+          (dynamic_cast<King *>(potentialAttackerUpwardDiagonal) &&
+           (potentialAttackerUpwardDiagonal->getColor() != color)) ||
+          (dynamic_cast<King *>(potentialAttackerDownwardDiagonal) &&
+           (potentialAttackerDownwardDiagonal->getColor() != color))) {
+        return true;
+      }
+    }
+  }
 
   return false;
 }
@@ -727,7 +762,7 @@ bool Board::canKingGetOutOfCheck(Color color, const Position &start,
 }
 
 bool Board::moveAndCheckForCheck(Color color, const Position &start,
-                               const Position &end) {
+                                 const Position &end) {
   auto *pieceToMove = getPieceAt(start);
   auto *pieceAtDestination = getPieceAt(end);
 
@@ -813,9 +848,9 @@ bool Board::isKingCheckmated(Color color) {
 
 bool Board::hasStalemateOccurred(Color color) {
   // 50-move rule
-  if (m_halfMoveNum >= 50) {
-    return true;
-  }
+  // if (m_halfMoveNum >= 50) {
+  //   return true;
+  // }
 
   // Dead positions
   // if (oneSideHas({PieceType::bishop, }))
@@ -865,11 +900,13 @@ bool Board::promotePawn(const PieceType &piece) {
 }
 
 void Board::updateBoardState(const Position &start, const Position &end) {
-  m_enPassantSquare = std::nullopt;
-  m_pawnToPromote = std::nullopt;
+  m_enPassantSquare.reset();
+  m_pawnToPromote.reset();
 
   // Refresh valid moves
   m_allValidMoves.clear();
+  m_movesToHighlight.clear();
+  m_kingToHighlight.reset();
   for (int i = 0; i < 2; ++i) {
     for (int j = 0; j < k_totalPieces / 2; ++j) {
       CONTINUE_IF_NULL(m_pieces[i][j]);
@@ -897,16 +934,53 @@ void Board::updateBoardState(const Position &start, const Position &end) {
   }
 }
 
-bool Board::isInputValid(Color color, const Position& position) {
+bool Board::isInputValid(Color color, const std::queue<Position> &positions) {
   // Can't move nothing
-  if (!getPieceAt(position)) {
+  if (!getPieceAt(positions.front())) {
     return false;
   }
 
   // Can't move opponent's pieces
-  if (getPieceAt(position)->getColor() != color) {
+  if (getPieceAt(positions.front())->getColor() != color) {
     return false;
   }
 
+  // Can't move if destination is our own piece
+  if (positions.size() > 1 && getPieceAt(positions.back())) {
+    if (getPieceAt(positions.back())->getColor() == color) {
+      return false;
+    }
+  }
+
   return true;
+}
+
+void Board::highlightPotentialMoves(const Position &position) {
+  // Clear storage container first
+  m_movesToHighlight.clear();
+
+  auto *pieceToHighlight = getPieceAt(position);
+
+  const auto &validMoves = pieceToHighlight->getValidMoves();
+
+  if (validMoves.size() < 1) {
+    // No possible moves
+    return;
+  }
+
+  for (size_t i = 0; i < validMoves.size(); ++i) {
+    m_movesToHighlight.emplace_back(pieceToHighlight->getColor(),
+                                    validMoves.at(i));
+  }
+}
+
+void Board::highlightKingInCheck(Color color) {
+  // Clear storage
+  m_kingToHighlight.reset();
+
+  const auto *king = (color == Color::white)
+                         ? m_pieces[1][k_pawnsPerSide + 7].get()
+                         : m_pieces[0][k_pawnsPerSide + 7].get();
+
+  m_kingToHighlight = king->getPosition();
 }

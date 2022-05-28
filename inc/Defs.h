@@ -3,10 +3,14 @@
 
 #include <array>
 #include <bitset>
+#include <cctype>
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <queue>
+#include <regex>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
