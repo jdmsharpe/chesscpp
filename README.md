@@ -15,3 +15,4 @@ Nothing fancy, just a naive implementation as a personal project.
 * Investigate edge cases
 * Update unit tests for Board
 * FEN output of arbitrary board state (stretch goal)
+* AI? (stretch goal)
