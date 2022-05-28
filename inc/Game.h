@@ -1,10 +1,6 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include <cctype>
-#include <regex>
-#include <unordered_map>
-
 #include "Defs.h"
 
 class Game {
@@ -31,7 +27,18 @@ public:
     return m_whiteToMove ? Color::black : Color::white;
   }
 
-  inline void switchPlayers() { m_whiteToMove = !m_whiteToMove; }
+  inline size_t whatTurnIsIt() const {
+    return m_turnNum;
+  }
+
+  inline void switchPlayers() {
+    m_whiteToMove = !m_whiteToMove;
+    ++m_halfMoveNum;
+    // Modulo on size_t is badness, apparently
+    if (static_cast<int>(m_halfMoveNum) % 2 == 0) {
+      ++m_turnNum;
+    }
+  }
 
   void outputPlayerTurn() const;
 
@@ -60,6 +67,10 @@ private:
   bool m_inProgress = true;
   bool m_whiteToMove = true;
   std::optional<Color> m_winner = std::nullopt;
+
+  size_t m_fiftyMoveRuleNum = 0;
+  size_t m_halfMoveNum = 0;
+  size_t m_turnNum = 1;
 };
 
 #endif // GAME_H

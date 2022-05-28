@@ -15,11 +15,9 @@ public:
   Application(int argc, char **argv);
   virtual ~Application() = default;
 
-  // Should not be moved or copied
+  // Disallow copy and assign
   Application(const Application &) = delete;
-  Application(Application &) = delete;
-  Application(const Application &&) = delete;
-  Application(Application &&) = delete;
+  void operator=(const Application&) = delete;
 
   int run();
 

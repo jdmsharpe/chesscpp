@@ -4,8 +4,6 @@
 #include "Board.h"
 #include "Game.h"
 
-#include <queue>
-
 class Window {
 public:
   Window(const bool isLegacyMode);

@@ -58,8 +58,6 @@ int Application::run() {
           break;
         }
       }
-
-      m_window->render();
     }
 
     switch (m_appState) {
@@ -70,6 +68,7 @@ int Application::run() {
       m_window->endGame();
       break;
     }
+    m_window->render();
   }
 
   return 0;

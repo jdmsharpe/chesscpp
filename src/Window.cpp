@@ -47,6 +47,7 @@ void Window::open() {
     } else {
       m_sdlRenderer =
           SDL_CreateRenderer(m_sdlWindow, -1, SDL_RENDERER_SOFTWARE);
+      SDL_SetRenderDrawBlendMode(m_sdlRenderer, SDL_BLENDMODE_BLEND);
       m_sdlSurface = SDL_GetWindowSurface(m_sdlWindow);
     }
   }
@@ -183,6 +184,11 @@ void Window::stepLegacyGame() {
 }
 
 void Window::stepSdlGame() {
+  if (m_board.isKingInCheck(m_game.whoseTurnIsIt())) {
+    // Alert player if their king is in check
+    m_board.highlightKingInCheck(m_game.whoseTurnIsIt());
+  }
+
   // Standard mode uses SDL for graphics
   if (m_clickedPositionQueue.size() < 1) {
     // No input to process
@@ -190,41 +196,50 @@ void Window::stepSdlGame() {
   }
 
   if (!m_board.isInputValid(m_game.whoseTurnIsIt(),
-                            m_clickedPositionQueue.front())) {
+                            m_clickedPositionQueue)) {
     m_clickedPositionQueue.pop();
     return;
   }
 
-  if (m_clickedPositionQueue.size() == 2) {
-    // LMB was clicked twice and two valid positions were stored
-    Position firstPosition = m_clickedPositionQueue.front();
-    m_clickedPositionQueue.pop();
+  // Ensures valid moves are populated on first turn
+  // Little hacky but I think it's okay
+  if (m_game.whatTurnIsIt() == 1) {
+    m_board.updateBoardState({}, {});
+  }
 
-    Position secondPosition = m_clickedPositionQueue.front();
-    m_clickedPositionQueue.pop();
+  if (m_clickedPositionQueue.size() < 2) {
+    m_board.highlightPotentialMoves(m_clickedPositionQueue.front());
+    return;
+  }
 
-    if (m_board.isValidMove(m_game.whoseTurnIsIt(), firstPosition,
-                            secondPosition, false)) {
-      m_board.movePiece(firstPosition, secondPosition);
-      m_board.updateBoardState(firstPosition, secondPosition);
+  // LMB was clicked twice and two valid positions were stored
+  Position firstPosition = m_clickedPositionQueue.front();
+  m_clickedPositionQueue.pop();
 
-      while (m_board.pawnToPromote()) {
-        m_game.outputPromotionRules();
-        std::cin >> m_promotionInput;
-        if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
-          m_board.promotePawn(m_promotionOutput);
-        }
+  Position secondPosition = m_clickedPositionQueue.front();
+  m_clickedPositionQueue.pop();
+
+  if (m_board.isValidMove(m_game.whoseTurnIsIt(), firstPosition,
+                          secondPosition, false)) {
+    m_board.movePiece(firstPosition, secondPosition);
+    m_board.updateBoardState(firstPosition, secondPosition);
+
+    while (m_board.pawnToPromote()) {
+      m_game.outputPromotionRules();
+      std::cin >> m_promotionInput;
+      if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
+        m_board.promotePawn(m_promotionOutput);
       }
-
-      if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {
-        m_game.endWithVictory();
-      } else if (m_board.hasStalemateOccurred(m_game.whoseTurnIsItNot())) {
-        m_game.endWithDraw();
-      }
-
-      // When move is complete, turn is over
-      m_game.switchPlayers();
     }
+
+    if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {
+      m_game.endWithVictory();
+    } else if (m_board.hasStalemateOccurred(m_game.whoseTurnIsItNot())) {
+      m_game.endWithDraw();
+    }
+
+    // When move is complete, turn is over
+    m_game.switchPlayers();
   }
 }
 
