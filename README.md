@@ -11,6 +11,13 @@ Nothing fancy, just a naive implementation as a personal project.
 4. `cd chess_build`
 5. `cmake ../chess`
 6. `cmake --build .`
+7. `./chess`
+
+## Additional Options
+The following options can be passed as an additional argument when running the executable, e.g. `./chess -l`.
+* Passing `-l` will load a board state from the `load.fen` file under `inc`
+* Passing `-v` will enable verbose/debugging mode
+* Passing `--legacy` will enable legacy CLI mode with no SDL graphics
 
 ## Remaining Work
 * Observe half-move rule
