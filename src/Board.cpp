@@ -1026,21 +1026,6 @@ void Board::updateBoardState(const Position &start, const Position &end) {
   m_enPassantSquare.reset();
   m_pawnToPromote.reset();
 
-  // Clear storage for moves to highlight
-  m_movesToHighlight.clear();
-  m_kingToHighlight.reset();
-  m_pieceToHighlight.reset();
-
-  // Refresh valid moves
-  m_allValidMoves.clear();
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < k_totalPieces / 2; ++j) {
-      CONTINUE_IF_NULL(m_pieces[i][j]);
-      m_pieces[i][j]->clearValidMoves();
-    }
-  }
-  storeValidMoves();
-
   auto *pieceThatMoved = getPieceAt(end);
 
   RETURN_IF_NULL(pieceThatMoved);
@@ -1058,6 +1043,22 @@ void Board::updateBoardState(const Position &start, const Position &end) {
       m_pawnToPromote = pieceThatMoved->getPosition();
     }
   }
+
+  // Clear storage for moves to highlight
+  m_movesToHighlight.clear();
+  m_kingToHighlight.reset();
+  m_pieceToHighlight.reset();
+
+  // Refresh valid moves
+  m_allValidMoves.clear();
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < k_totalPieces / 2; ++j) {
+      CONTINUE_IF_NULL(m_pieces[i][j]);
+      m_pieces[i][j]->clearValidMoves();
+    }
+  }
+
+  storeValidMoves();
 }
 
 bool Board::isInputValid(Color color, const std::queue<Position> &positions) {
