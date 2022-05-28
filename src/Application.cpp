@@ -39,9 +39,15 @@ int Application::run() {
   // To handle SDL events
   SDL_Event e;
 
+  // Initialize tracking variables
   bool quit = false;
+  bool gameComplete = false;
+  std::chrono::duration<double> diff;
+  std::chrono::_V2::system_clock::time_point runStart;
+  std::chrono::_V2::system_clock::time_point runEnd;
 
   while (!quit) {
+    runStart = std::chrono::system_clock::now();
     // All SDL tasks are exclusive to new mode
     if (!m_legacyMode) {
       while (SDL_PollEvent(&e)) {
@@ -62,13 +68,28 @@ int Application::run() {
 
     switch (m_appState) {
     case AppState::GAME_IN_PROGRESS:
+      // For timing and later optimization
+
       m_window->stepGame();
+
+      if (!m_window->isGameInProgress()) {
+        m_appState = AppState::GAME_COMPLETE;
+      }
+
       break;
+
     case AppState::GAME_COMPLETE:
       m_window->endGame();
       break;
     }
+
     m_window->render();
+
+    runEnd = std::chrono::system_clock::now();
+    diff = runEnd - runStart;
+    if (k_verbose) {
+      SDL_Log("Time to complete run() was %.2f ms.", diff.count() * 1000);
+    }
   }
 
   return 0;

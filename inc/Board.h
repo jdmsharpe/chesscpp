@@ -88,6 +88,7 @@ private:
   using Moves = PieceContainer;
   Moves m_allValidMoves = {};
   Moves m_movesToHighlight = {};
+  std::optional<Position> m_pieceToHighlight = std::nullopt;
   std::optional<Position> m_kingToHighlight = std::nullopt;
 
   CastleStatus m_castleStatus = CastleStatus().set();

@@ -67,6 +67,7 @@ private:
   bool m_inProgress = true;
   bool m_whiteToMove = true;
   std::optional<Color> m_winner = std::nullopt;
+  mutable bool m_displayWinnerOnceFlag  = true;
 
   size_t m_fiftyMoveRuleNum = 0;
   size_t m_halfMoveNum = 0;

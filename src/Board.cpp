@@ -6,10 +6,16 @@ const std::string k_pieceImageFilepath = "../chess/inc/pieces.png";
 
 constexpr int k_pawnsPerSide = k_totalPieces / 4;
 
+// Dark green
 constexpr SDL_Color k_evenColor = SDL_Color({118, 150, 86, SDL_ALPHA_OPAQUE});
+// Beige-ish
 constexpr SDL_Color k_oddColor = SDL_Color({238, 238, 210, SDL_ALPHA_OPAQUE});
+// Green
 constexpr SDL_Color k_movementOptionColor = SDL_Color({0, 255, 0, 128});
+// Red
 constexpr SDL_Color k_checkColor = SDL_Color({255, 0, 0, 128});
+// Yellow
+constexpr SDL_Color k_selectedPieceColor = SDL_Color({255, 255, 0, 128});;
 
 constexpr int k_pieceWidth = 105;
 constexpr int k_pieceHeight = 105;
@@ -23,6 +29,7 @@ constexpr int k_xKnightOffset = 317;
 constexpr int k_xBishopOffset = 211;
 constexpr int k_xQueenOffset = 105;
 constexpr int k_xKingOffset = 0;
+constexpr int k_xKingAdditionalOffset = 2;
 
 constexpr std::array<Position, 8> k_potentialKnightPositions = {
     {{2, 1}, {2, -1}, {-2, -1}, {-2, 1}, {1, 2}, {1, -2}, {-1, -2}, {-1, 2}}};
@@ -159,12 +166,17 @@ void Board::sdlDisplay() {
     }
   }
 
-  // Render valid moves for piece that was clicked
+  // Highlight piece that was clicked, if any
+  if (m_pieceToHighlight.has_value()) {
+    sdlDrawSquare(m_pieceToHighlight.value(), k_selectedPieceColor);
+  }
+
+  // Highlight valid moves for piece that was clicked, if any
   for (size_t i = 0; i < m_movesToHighlight.size(); ++i) {
     sdlDrawSquare(m_movesToHighlight.at(i).second, k_movementOptionColor);
   }
 
-  // Render king's square with a warning color if in check
+  // Highlights king's square with a warning color if in check
   if (m_kingToHighlight.has_value()) {
     sdlDrawSquare(m_kingToHighlight.value(), k_checkColor);
   }
@@ -192,26 +204,28 @@ void Board::sdlDrawSquare(const Position &position, const SDL_Color &sdlColor) {
 void Board::sdlDrawPiece(const Piece *piece) {
   RETURN_IF_NULL(piece);
 
-  int totalXOffset = 0;
-  int totalYOffset = 0;
+  int pieceXOffset = 0;
+  int pieceYOffset = 0;
+  int screenXOffset = 0;
 
   if (piece->getColor() == Color::black) {
     // Black is in top half of image
-    totalYOffset += k_pieceHeight;
+    pieceYOffset += k_pieceHeight;
   }
 
   if (dynamic_cast<const Pawn *>(piece)) {
-    totalXOffset += k_xPawnOffset;
+    pieceXOffset += k_xPawnOffset;
   } else if (dynamic_cast<const Knight *>(piece)) {
-    totalXOffset += k_xKnightOffset;
+    pieceXOffset += k_xKnightOffset;
   } else if (dynamic_cast<const Bishop *>(piece)) {
-    totalXOffset += k_xBishopOffset;
+    pieceXOffset += k_xBishopOffset;
   } else if (dynamic_cast<const Rook *>(piece)) {
-    totalXOffset += k_xRookOffset;
+    pieceXOffset += k_xRookOffset;
   } else if (dynamic_cast<const Queen *>(piece)) {
-    totalXOffset += k_xQueenOffset;
+    pieceXOffset += k_xQueenOffset;
   } else if (dynamic_cast<const King *>(piece)) {
-    totalXOffset += k_xKingOffset;
+    pieceXOffset += k_xKingOffset;
+    screenXOffset += k_xKingAdditionalOffset;
   } else {
     // Type ???
     return;
@@ -219,13 +233,15 @@ void Board::sdlDrawPiece(const Piece *piece) {
 
   const Position position = piece->getPosition();
 
-  SDL_Rect pieceBox = {.x = totalXOffset,
-                       .y = totalYOffset,
+  SDL_Rect pieceBox = {.x = pieceXOffset,
+                       .y = pieceYOffset,
                        .w = k_pieceWidth,
                        .h = k_pieceHeight};
 
-  SDL_Rect screenBox = {.x = (position.first * k_screenBoxSize) - k_screenBoxOffset,
-                        .y = (position.second * k_screenBoxSize) - k_screenBoxOffset,
+  SDL_Rect screenBox = {.x = (position.first * k_screenBoxSize) -
+                             k_screenBoxOffset + screenXOffset,
+                        .y = (position.second * k_screenBoxSize) -
+                             k_screenBoxOffset,
                         .w = k_pieceWidth,
                         .h = k_pieceHeight};
 
@@ -900,13 +916,17 @@ bool Board::promotePawn(const PieceType &piece) {
 }
 
 void Board::updateBoardState(const Position &start, const Position &end) {
+  // Clear board events that are only active for a single turn
   m_enPassantSquare.reset();
   m_pawnToPromote.reset();
 
-  // Refresh valid moves
-  m_allValidMoves.clear();
+  // Clear storage for moves to highlight
   m_movesToHighlight.clear();
   m_kingToHighlight.reset();
+  m_pieceToHighlight.reset();
+
+  // Refresh valid moves
+  m_allValidMoves.clear();
   for (int i = 0; i < 2; ++i) {
     for (int j = 0; j < k_totalPieces / 2; ++j) {
       CONTINUE_IF_NULL(m_pieces[i][j]);
@@ -958,8 +978,13 @@ bool Board::isInputValid(Color color, const std::queue<Position> &positions) {
 void Board::highlightPotentialMoves(const Position &position) {
   // Clear storage container first
   m_movesToHighlight.clear();
+  m_pieceToHighlight.reset();
 
   auto *pieceToHighlight = getPieceAt(position);
+
+  RETURN_IF_NULL(pieceToHighlight);
+
+  m_pieceToHighlight = pieceToHighlight->getPosition();
 
   const auto &validMoves = pieceToHighlight->getValidMoves();
 
@@ -975,8 +1000,8 @@ void Board::highlightPotentialMoves(const Position &position) {
 }
 
 void Board::highlightKingInCheck(Color color) {
-  // Clear storage
-  m_kingToHighlight.reset();
+  // // Clear storage
+  // m_kingToHighlight.reset();
 
   const auto *king = (color == Color::white)
                          ? m_pieces[1][k_pawnsPerSide + 7].get()
