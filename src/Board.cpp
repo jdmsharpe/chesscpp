@@ -354,7 +354,9 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
             if (!isPieceBlockingRook({7, 7}, {4, 7})) {
               if (!forMoveStorage) {
                 // First make sure we can't castle again
-                m_castleStatus.reset();
+                m_castleStatus[k_blackKingsideIndex] = 0;
+                m_castleStatus[k_blackQueensideIndex] = 0;
+
                 // Now move pieces
                 movePiece({7, 7}, {5, 7});
                 movePiece({4, 7}, {6, 7});
@@ -371,7 +373,8 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
               !getPieceAt({0, 7})->hasMoved()) {
             if (!isPieceBlockingRook({0, 7}, {4, 7})) {
               if (!forMoveStorage) {
-                m_castleStatus.reset();
+                m_castleStatus[k_blackKingsideIndex] = 0;
+                m_castleStatus[k_blackQueensideIndex] = 0;
 
                 movePiece({0, 7}, {3, 7});
                 movePiece({4, 7}, {2, 7});
@@ -388,7 +391,8 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
               !getPieceAt({7, 0})->hasMoved()) {
             if (!isPieceBlockingRook({7, 0}, {4, 0})) {
               if (!forMoveStorage) {
-                m_castleStatus.reset();
+                m_castleStatus[k_whiteKingsideIndex] = 0;
+                m_castleStatus[k_whiteQueensideIndex] = 0;
 
                 movePiece({7, 0}, {5, 0});
                 movePiece({4, 0}, {6, 0});
@@ -405,7 +409,8 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
               !getPieceAt({0, 0})->hasMoved()) {
             if (!isPieceBlockingRook({0, 0}, {4, 0})) {
               if (!forMoveStorage) {
-                m_castleStatus.reset();
+                m_castleStatus[k_whiteKingsideIndex] = 0;
+                m_castleStatus[k_whiteQueensideIndex] = 0;
 
                 movePiece({0, 0}, {3, 0});
                 movePiece({4, 0}, {2, 0});
