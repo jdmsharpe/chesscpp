@@ -733,7 +733,7 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
 
   // King case
   {
-    for (int i = -1; i < 1; ++i) {
+    for (int i = -1; i < 2; ++i) {
       auto *potentialAttackerHorizontal =
           getPieceAt({position.first + i, position.second});
       auto *potentialAttackerVertical =
