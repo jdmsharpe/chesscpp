@@ -338,13 +338,13 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
       // Check squares along intended path to see if they are attacked
       int direction = sign(directionToMove.first);
       for (int i = 1; i < 3; ++i) {
-        if (isSquareAttacked(color, {directionToMove.first + (i * direction),
-                                     directionToMove.second})) {
+        if (isSquareAttacked(color,
+                             {end.first + (i * direction), end.second})) {
           return false;
         }
       }
 
-      if (sign(directionToMove.first) > 0 && color == Color::black) {
+      if (direction > 0 && color == Color::black) {
         // Black kingside castle
         if (m_castleStatus[k_blackKingsideIndex] != 0) {
           // Cannot castle if rook has moved
@@ -366,7 +366,7 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
             }
           }
         }
-      } else if (sign(directionToMove.first) < 0 && color == Color::black) {
+      } else if (direction < 0 && color == Color::black) {
         // Black queenside castle
         if (m_castleStatus[k_blackQueensideIndex] != 0) {
           if (dynamic_cast<Rook *>(getPieceAt({0, 7})) &&
@@ -384,7 +384,7 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
             }
           }
         }
-      } else if (sign(directionToMove.first) > 0 && color == Color::white) {
+      } else if (direction > 0 && color == Color::white) {
         // White kingside castle
         if (m_castleStatus[k_whiteKingsideIndex] != 0) {
           if (dynamic_cast<Rook *>(getPieceAt({7, 0})) &&
@@ -402,7 +402,7 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
             }
           }
         }
-      } else if (sign(directionToMove.first) < 0 && color == Color::white) {
+      } else if (direction < 0 && color == Color::white) {
         // White queenside castle
         if (m_castleStatus[k_whiteQueensideIndex] != 0) {
           if (dynamic_cast<Rook *>(getPieceAt({0, 0})) &&
