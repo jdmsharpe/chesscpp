@@ -32,14 +32,18 @@ constexpr int k_turnIndex = 12;
 } // namespace
 
 void Game::whoWon() const {
-  // Draw case
-  if (!m_winner.has_value()) {
-    std::cout << "The game was a draw!" << std::endl;
-    return;
-  }
+  // Only print one time
+  if (m_displayWinnerOnceFlag) {
+    m_displayWinnerOnceFlag = false;
+    // Draw case
+    if (!m_winner.has_value()) {
+      std::cout << "The game was a draw!" << std::endl;
+      return;
+    }
 
-  std::string winner = (m_winner == Color::white) ? "White" : "Black";
-  std::cout << winner << " won the game!" << std::endl;
+    std::string winner = (m_winner == Color::white) ? "White" : "Black";
+    std::cout << winner << " won the game!" << std::endl;
+  }
 }
 
 void Game::outputPlayerTurn() const {

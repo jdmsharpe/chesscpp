@@ -98,8 +98,7 @@ void Window::render() {
   // wait a bit until they're equal (fixed framerate)
   if (k_dt > frameTime) {
     // Debug print to check actual elapsed time
-    // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Elapsed frame time was %d
-    // ms.", frameTime);
+    // SDL_Log("Elapsed frame time was %d ms.", frameTime);
     SDL_Delay(k_dt - frameTime);
   }
 }
@@ -147,9 +146,6 @@ void Window::stepLegacyGame() {
 
   std::cin >> m_moveInput.first >> m_moveInput.second;
 
-  // For timing and later optimization
-  auto startTurn = std::chrono::system_clock::now();
-
   m_game.parseMove(m_moveInput, m_moveOutput);
 
   if (m_board.isValidMove(m_game.whoseTurnIsIt(), m_moveOutput.first,
@@ -173,13 +169,6 @@ void Window::stepLegacyGame() {
 
     // When move is complete, turn is over
     m_game.switchPlayers();
-  }
-
-  auto endTurn = std::chrono::system_clock::now();
-  std::chrono::duration<double> diff = endTurn - startTurn;
-  if (k_verbose) {
-    std::cout << "DEBUG: Time to complete turn was " << diff.count()
-              << " seconds." << std::endl;
   }
 }
 
