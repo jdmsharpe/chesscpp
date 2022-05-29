@@ -7,6 +7,10 @@
 #include "Macros.h"
 #include "Pieces.h"
 
+// Class to define the board state and manage updates to it
+// Responsible for checking move validity, handling special behavior like
+// check, promotion, etc., and rendering the board and pieces on the window
+// TODO: Refactor into two classes - maybe one responsible for SDL stuff
 class Board {
 public:
   Board() {}
@@ -54,10 +58,17 @@ public:
 
   void highlightKingInCheck(Color color);
 
-  inline void clearHighlight() {
+  inline void clearOldPieceHighlight() {
     m_movesToHighlight.clear();
     m_pieceToHighlight.reset();
   }
+
+  inline const std::vector<FullMove> &getAllValidMoves() const {
+    return m_allValidMoves;
+  }
+
+  const LumpedBoardAndGameState &
+  getBoardAndGameState(Color color, size_t halfMoveNum, size_t turnNum);
 
 private:
   void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor);
@@ -84,20 +95,36 @@ private:
   void setKingCastleStatus(Color color, CastleSide side);
 
   SDL_Renderer *m_renderer = NULL;
+
+  // Holds texture of image with all piece sprites
   SDL_Texture *m_pieceImageTexture = NULL;
 
   using Pieces =
       std::array<std::array<std::unique_ptr<Piece>, k_totalPieces / 2>, 2>;
+  // Container for every piece
   Pieces m_pieces;
 
-  using Moves = PieceContainer;
-  Moves m_allValidMoves = {};
-  Moves m_movesToHighlight = {};
+  LumpedBoardAndGameState m_boardAndGameState = {};
+
+  // Container for all possible moves on the board
+  std::vector<FullMove> m_allValidMoves = {};
+
+  // Squares to highlight as valid moves
+  std::vector<Position> m_movesToHighlight = {};
+
+  // Piece square to highlight if clicked
   std::optional<Position> m_pieceToHighlight = std::nullopt;
+
+  // King square to highlight if in check
   std::optional<Position> m_kingToHighlight = std::nullopt;
 
+  // Both sides' castling availability
   CastleStatus m_castleStatus = CastleStatus().set();
+
+  // Stored en passant square, if any
   std::optional<Position> m_enPassantSquare = std::nullopt;
+
+  // Stored pawn to promote, if any
   std::optional<Position> m_pawnToPromote = std::nullopt;
 };
 

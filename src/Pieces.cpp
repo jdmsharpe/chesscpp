@@ -5,11 +5,6 @@ bool Piece::isValidMove(const Position &move) const {
     return false;
   }
 
-  if (move.first >= 8 || move.second >= 8 || move.first < 0 ||
-      move.second < 0) {
-    return false;
-  }
-
   return true;
 }
 

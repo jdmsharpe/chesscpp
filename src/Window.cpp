@@ -8,9 +8,6 @@ namespace {
 // 16 ms is equivalent to ~60 FPS (really 62.5 FPS)
 constexpr int k_dt = 16; // ms
 
-// Positions are zero-indexed, so 7 is the maximum index
-constexpr int k_finalRowColIndex = 7;
-
 Position convertMouseInputToPosition(const int x, const int y) {
   return {x / k_squareWidth, std::abs((y / k_squareWidth))};
 }
@@ -18,7 +15,8 @@ Position convertMouseInputToPosition(const int x, const int y) {
 } // namespace
 
 Window::Window(const bool isLegacyMode)
-    : m_board(Board()), m_game(Game()), m_legacyMode(isLegacyMode) {
+    : m_board(Board()), m_game(Game()), m_computer(std::make_unique<AI>()),
+      m_legacyMode(isLegacyMode) {
   if (!m_legacyMode) {
     open();
   }
@@ -47,20 +45,20 @@ void Window::open() {
     } else {
       m_sdlRenderer =
           SDL_CreateRenderer(m_sdlWindow, -1, SDL_RENDERER_SOFTWARE);
-      SDL_SetRenderDrawBlendMode(m_sdlRenderer, SDL_BLENDMODE_BLEND);
       m_sdlSurface = SDL_GetWindowSurface(m_sdlWindow);
     }
   }
 
   // Something really went wrong
   if (m_sdlRenderer == NULL) {
-    SDL_LogError(SDL_LOG_CATEGORY_ERROR,
-                 "MainMenu pointer to renderer was NULL!");
+    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Pointer to renderer was NULL!");
   }
 
   if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
     SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SDL_Image could not initialize!");
   }
+
+  SDL_SetRenderDrawBlendMode(m_sdlRenderer, SDL_BLENDMODE_BLEND);
 
   m_board.setRenderer(m_sdlRenderer);
   m_board.loadTextures();
@@ -178,58 +176,74 @@ void Window::stepSdlGame() {
     m_board.highlightKingInCheck(m_game.whoseTurnIsIt());
   }
 
-  // Standard mode uses SDL for graphics
-  if (m_clickedPositionQueue.size() < 1) {
-    // No input to process
-    m_board.clearHighlight();
-    return;
-  }
+  if (m_game.whoseTurnIsIt() != m_computer->getColor()) {
+    // Standard mode uses SDL for graphics
+    if (m_clickedPositionQueue.size() < 1) {
+      // No input to process
+      m_board.clearOldPieceHighlight();
+      return;
+    }
 
-  if (!m_board.isInputValid(m_game.whoseTurnIsIt(), m_clickedPositionQueue)) {
+    if (!m_board.isInputValid(m_game.whoseTurnIsIt(), m_clickedPositionQueue)) {
+      m_clickedPositionQueue.pop();
+      return;
+    }
+
+    // Ensures valid moves are populated on first turn
+    // Little hacky but I think it's okay
+    if (m_game.whatTurnIsIt() == 1) {
+      m_board.updateBoardState({}, {});
+    }
+
+    if (m_clickedPositionQueue.size() < 2) {
+      m_board.highlightPotentialMoves(m_clickedPositionQueue.front());
+      return;
+    }
+
+    // LMB was clicked twice and two valid positions were stored
+    Position firstPosition = m_clickedPositionQueue.front();
     m_clickedPositionQueue.pop();
-    return;
-  }
 
-  // Ensures valid moves are populated on first turn
-  // Little hacky but I think it's okay
-  if (m_game.whatTurnIsIt() == 1) {
-    m_board.updateBoardState({}, {});
-  }
+    Position secondPosition = m_clickedPositionQueue.front();
+    m_clickedPositionQueue.pop();
 
-  if (m_clickedPositionQueue.size() < 2) {
-    m_board.highlightPotentialMoves(m_clickedPositionQueue.front());
-    return;
-  }
+    if (m_board.isValidMove(m_game.whoseTurnIsIt(), firstPosition, secondPosition,
+                            false)) {
+      m_board.movePiece(firstPosition, secondPosition);
+      m_board.updateBoardState(firstPosition, secondPosition);
 
-  // LMB was clicked twice and two valid positions were stored
-  Position firstPosition = m_clickedPositionQueue.front();
-  m_clickedPositionQueue.pop();
-
-  Position secondPosition = m_clickedPositionQueue.front();
-  m_clickedPositionQueue.pop();
-
-  if (m_board.isValidMove(m_game.whoseTurnIsIt(), firstPosition, secondPosition,
-                          false)) {
-    m_board.movePiece(firstPosition, secondPosition);
-    m_board.updateBoardState(firstPosition, secondPosition);
-
-    while (m_board.pawnToPromote()) {
-      m_game.outputPromotionRules();
-      std::cin >> m_promotionInput;
-      if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
-        m_board.promotePawn(m_promotionOutput);
+      while (m_board.pawnToPromote()) {
+        m_game.outputPromotionRules();
+        std::cin >> m_promotionInput;
+        if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
+          m_board.promotePawn(m_promotionOutput);
+        }
       }
     }
+  } else {
+    // Simple sleep to not make moves almost instantaneous
+    // Can probably perform this some other way but this works for now
+    // TODO: Has a bug where computer's king doesn't highlight when in check
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
-    if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {
-      m_game.endWithVictory();
-    } else if (m_board.hasStalemateOccurred(m_game.whoseTurnIsItNot())) {
-      m_game.endWithDraw();
-    }
+    m_computer->setBoardAndGameState(m_board.getBoardAndGameState(
+        m_game.whoseTurnIsIt(), m_game.getHalfMoveCount(),
+        m_game.whatTurnIsIt()));
 
-    // When move is complete, turn is over
-    m_game.switchPlayers();
+    m_computer->setAvailableMoves(m_board.getAllValidMoves());
+    const auto &move = m_computer->calculateMove();
+    m_board.movePiece(move.first, move.second);
+    m_board.updateBoardState(move.first, move.second);
   }
+
+  if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {
+    m_game.endWithVictory();
+  } else if (m_board.hasStalemateOccurred(m_game.whoseTurnIsItNot())) {
+    m_game.endWithDraw();
+  }
+
+  // When move is complete, turn is over
+  m_game.switchPlayers();
 }
 
 void Window::endGame() {
