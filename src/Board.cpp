@@ -174,7 +174,7 @@ void Board::sdlDisplay() {
 
   // Highlight valid moves for piece that was clicked, if any
   for (size_t i = 0; i < m_movesToHighlight.size(); ++i) {
-    sdlDrawSquare(m_movesToHighlight.at(i).second, k_movementOptionColor);
+    sdlDrawSquare(m_movesToHighlight[i], k_movementOptionColor);
   }
 
   // Highlights king's square with a warning color if in check
@@ -296,6 +296,12 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
 
   // Nothing there
   if (!pieceToMove) {
+    return false;
+  }
+
+  // Invalid position
+  if (end.first >= 8 || end.second >= 8 || end.first < 0 ||
+      end.second < 0) {
     return false;
   }
 
@@ -825,7 +831,7 @@ void Board::storeValidMoves() {
   }
 
   // Initialize container to hold moves before they are added
-  Moves moveStorage;
+  std::vector<FullMove> moveStorage;
 
   for (int i = 0; i < 2; ++i) {
     for (int j = 0; j < k_totalPieces / 2; ++j) {
@@ -845,97 +851,148 @@ void Board::storeValidMoves() {
       }
 
       // Check piece type and add all possible moves to storage
+      // The point of all this is to optimize the time to check moves.
+      // By preselecting the only moves possible before checking if the moves
+      // are valid, there has to be some benefit. (not that I actually know what
+      // it is, though)
       if (dynamic_cast<Pawn *>(pieceToCheck)) {
-        int sign = (pieceToCheck->getColor() == Color::white) ? 1 : -1;
+        int sign = (color == Color::white) ? 1 : -1;
 
         // Pawns have 4 potential moves maximum
         // and they also have en passant, if applicable
-        moveStorage.push_back(
-            {color, {position.first, position.second + (sign * 2)}});
-        moveStorage.push_back(
-            {color, {position.first, position.second + sign}});
-        moveStorage.push_back(
-            {color, {position.first - 1, position.second + sign}});
-        moveStorage.push_back(
-            {color, {position.first + 1, position.second + sign}});
+        moveStorage.emplace_back(
+            PieceType::pawn, color, position,
+            Position({position.first, position.second + (sign * 2)}));
+        moveStorage.emplace_back(
+            PieceType::pawn, color, position,
+            Position({position.first, position.second + sign}));
+        moveStorage.emplace_back(
+            PieceType::pawn, color, position,
+            Position({position.first - 1, position.second + sign}));
+        moveStorage.emplace_back(
+            PieceType::pawn, color, position,
+            Position({position.first + 1, position.second + sign}));
         if (m_enPassantSquare.has_value()) {
-          moveStorage.push_back({color, m_enPassantSquare.value()});
+          moveStorage.emplace_back(PieceType::pawn, color, position,
+                                   m_enPassantSquare.value());
         }
+
       } else if (dynamic_cast<Knight *>(pieceToCheck)) {
         // Knights have 8 potential moves maximum
         for (int i = 0; i < k_potentialKnightPositions.size(); ++i) {
-          moveStorage.push_back(
-              {color,
-               {position.first + k_potentialKnightPositions[i].first,
-                position.second + k_potentialKnightPositions[i].second}});
+          moveStorage.emplace_back(
+              PieceType::knight, color, position,
+              Position(
+                  {position.first + k_potentialKnightPositions[i].first,
+                   position.second + k_potentialKnightPositions[i].second}));
         }
       } else if (dynamic_cast<Bishop *>(pieceToCheck)) {
         // Bishops have... well, now we have to check everything
         for (int i = 1; i < 8; ++i) {
-          moveStorage.push_back(
-              {color, {position.first + i, position.second + i}});
-          moveStorage.push_back(
-              {color, {position.first - i, position.second + i}});
-          moveStorage.push_back(
-              {color, {position.first - i, position.second - i}});
-          moveStorage.push_back(
-              {color, {position.first + i, position.second - i}});
+          moveStorage.emplace_back(
+              PieceType::bishop, color, position,
+              Position({position.first + i, position.second + i}));
+          moveStorage.emplace_back(
+              PieceType::bishop, color, position,
+              Position({position.first - i, position.second + i}));
+          moveStorage.emplace_back(
+              PieceType::bishop, color, position,
+              Position({position.first - i, position.second - i}));
+          moveStorage.emplace_back(
+              PieceType::bishop, color, position,
+              Position({position.first + i, position.second - i}));
         }
       } else if (dynamic_cast<Rook *>(pieceToCheck)) {
         for (int i = 1; i < 8; ++i) {
-          moveStorage.push_back({color, {position.first + i, position.second}});
-          moveStorage.push_back({color, {position.first, position.second + i}});
-          moveStorage.push_back({color, {position.first - i, position.second}});
-          moveStorage.push_back({color, {position.first, position.second - i}});
+          moveStorage.emplace_back(
+              PieceType::rook, color, position,
+              Position({position.first + i, position.second}));
+          moveStorage.emplace_back(
+              PieceType::rook, color, position,
+              Position({position.first, position.second + i}));
+          moveStorage.emplace_back(
+              PieceType::rook, color, position,
+              Position({position.first - i, position.second}));
+          moveStorage.emplace_back(
+              PieceType::rook, color, position,
+              Position({position.first, position.second - i}));
         }
       } else if (dynamic_cast<Queen *>(pieceToCheck)) {
         // Bishop/rook case combined as always
         for (int i = 1; i < 8; ++i) {
-          moveStorage.push_back({color, {position.first + i, position.second}});
-          moveStorage.push_back({color, {position.first, position.second + i}});
-          moveStorage.push_back({color, {position.first - i, position.second}});
-          moveStorage.push_back({color, {position.first, position.second - i}});
-          moveStorage.push_back(
-              {color, {position.first + i, position.second + i}});
-          moveStorage.push_back(
-              {color, {position.first - i, position.second + i}});
-          moveStorage.push_back(
-              {color, {position.first - i, position.second - i}});
-          moveStorage.push_back(
-              {color, {position.first + i, position.second - i}});
+          moveStorage.emplace_back(
+              PieceType::queen, color, position,
+              Position({position.first + i, position.second + i}));
+          moveStorage.emplace_back(
+              PieceType::queen, color, position,
+              Position({position.first - i, position.second + i}));
+          moveStorage.emplace_back(
+              PieceType::queen, color, position,
+              Position({position.first - i, position.second - i}));
+          moveStorage.emplace_back(
+              PieceType::queen, color, position,
+              Position({position.first + i, position.second - i}));
+          moveStorage.emplace_back(
+              PieceType::queen, color, position,
+              Position({position.first + i, position.second}));
+          moveStorage.emplace_back(
+              PieceType::queen, color, position,
+              Position({position.first, position.second + i}));
+          moveStorage.emplace_back(
+              PieceType::queen, color, position,
+              Position({position.first - i, position.second}));
+          moveStorage.emplace_back(
+              PieceType::queen, color, position,
+              Position({position.first, position.second - i}));
         }
       } else if (dynamic_cast<King *>(pieceToCheck)) {
         // Kings have 8 potential moves maximum, except they can also castle
-        moveStorage.push_back({color, {position.first + 1, position.second}});
-        moveStorage.push_back({color, {position.first, position.second + 1}});
-        moveStorage.push_back({color, {position.first - 1, position.second}});
-        moveStorage.push_back({color, {position.first, position.second - 1}});
-        moveStorage.push_back(
-            {color, {position.first + 1, position.second + 1}});
-        moveStorage.push_back(
-            {color, {position.first - 1, position.second + 1}});
-        moveStorage.push_back(
-            {color, {position.first - 1, position.second - 1}});
-        moveStorage.push_back(
-            {color, {position.first + 1, position.second - 1}});
+        moveStorage.emplace_back(
+            PieceType::king, color, position,
+            Position({position.first + 1, position.second + 1}));
+        moveStorage.emplace_back(
+            PieceType::king, color, position,
+            Position({position.first - 1, position.second + 1}));
+        moveStorage.emplace_back(
+            PieceType::king, color, position,
+            Position({position.first - 1, position.second - 1}));
+        moveStorage.emplace_back(
+            PieceType::king, color, position,
+            Position({position.first + 1, position.second - 1}));
+        moveStorage.emplace_back(
+            PieceType::king, color, position,
+            Position({position.first + 1, position.second}));
+        moveStorage.emplace_back(
+            PieceType::king, color, position,
+            Position({position.first, position.second + 1}));
+        moveStorage.emplace_back(
+            PieceType::king, color, position,
+            Position({position.first - 1, position.second}));
+        moveStorage.emplace_back(
+            PieceType::king, color, position,
+            Position({position.first, position.second - 1}));
 
         if (color == Color::black) {
           if (m_castleStatus[k_blackKingsideIndex]) {
-            moveStorage.push_back(
-                {color, {position.first + 2, position.second}});
+            moveStorage.emplace_back(
+                PieceType::king, color, position,
+                Position({position.first + 2, position.second}));
           }
           if (m_castleStatus[k_blackQueensideIndex]) {
-            moveStorage.push_back(
-                {color, {position.first - 2, position.second}});
+            moveStorage.emplace_back(
+                PieceType::king, color, position,
+                Position({position.first - 2, position.second}));
           }
         } else {
           if (m_castleStatus[k_whiteKingsideIndex]) {
-            moveStorage.push_back(
-                {color, {position.first + 2, position.second}});
+            moveStorage.emplace_back(
+                PieceType::king, color, position,
+                Position({position.first + 2, position.second}));
           }
           if (m_castleStatus[k_whiteQueensideIndex]) {
-            moveStorage.push_back(
-                {color, {position.first - 2, position.second}});
+            moveStorage.emplace_back(
+                PieceType::king, color, position,
+                Position({position.first - 2, position.second}));
           }
         }
       }
@@ -943,14 +1000,14 @@ void Board::storeValidMoves() {
       // See if stored moves are actually valid, and if they are,
       // add them to both the board's and piece's of valid moves
       for (size_t i = 0; i < moveStorage.size(); ++i) {
-        const auto &potentialMove = moveStorage.at(i).second;
-        if (isValidMove(color, position, potentialMove, true)) {
-          pieceToCheck->addValidMove(potentialMove);
-          m_allValidMoves.emplace_back(color, potentialMove);
+        const auto &potentialMove = moveStorage[i];
+        if (isValidMove(color, position, potentialMove.end, true)) {
+          pieceToCheck->addValidMove(potentialMove.end);
+          m_allValidMoves.emplace_back(potentialMove);
 
           if (k_verbose) {
-            std::cout << potentialMove.first << " " << potentialMove.second
-                      << std::endl;
+            std::cout << potentialMove.end.first << " "
+                      << potentialMove.end.second << std::endl;
           }
         }
       }
@@ -959,13 +1016,15 @@ void Board::storeValidMoves() {
 }
 
 bool Board::isKingCheckmated(Color color) {
-  auto checkForColor = [this, color](std::pair<Color, Position> input) {
-    return color == input.first;
+  auto checkForColor = [this, color](FullMove input) {
+    return color == input.color;
   };
 
   if (isKingInCheck(color)) {
     if (std::find_if(m_allValidMoves.begin(), m_allValidMoves.end(),
                      checkForColor) == m_allValidMoves.end()) {
+      // Highlight now because render stops being called after game over
+      highlightKingInCheck(color);
       return true;
     }
   }
@@ -984,8 +1043,8 @@ bool Board::hasStalemateOccurred(Color color) {
 
   // Identical to checkmate function, but removes the requirement of the king
   // being in check
-  auto checkForColor = [this, color](std::pair<Color, Position> input) {
-    return color == input.first;
+  auto checkForColor = [this, color](FullMove input) {
+    return color == input.color;
   };
 
   if (std::find_if(m_allValidMoves.begin(), m_allValidMoves.end(),
@@ -1088,8 +1147,8 @@ bool Board::isInputValid(Color color, const std::queue<Position> &positions) {
 }
 
 void Board::highlightPotentialMoves(const Position &position) {
-  // Clear storage container first
-  clearHighlight();
+  // Clear storage containers first
+  clearOldPieceHighlight();
 
   auto *pieceToHighlight = getPieceAt(position);
 
@@ -1105,18 +1164,53 @@ void Board::highlightPotentialMoves(const Position &position) {
   }
 
   for (size_t i = 0; i < validMoves.size(); ++i) {
-    m_movesToHighlight.emplace_back(pieceToHighlight->getColor(),
-                                    validMoves.at(i));
+    m_movesToHighlight.emplace_back(validMoves[i]);
   }
 }
 
 void Board::highlightKingInCheck(Color color) {
-  // // Clear storage
-  // m_kingToHighlight.reset();
-
   const auto *king = (color == Color::white)
                          ? m_pieces[1][k_pawnsPerSide + 7].get()
                          : m_pieces[0][k_pawnsPerSide + 7].get();
 
   m_kingToHighlight = king->getPosition();
+}
+
+const LumpedBoardAndGameState &
+Board::getBoardAndGameState(Color color, size_t halfMoveNum, size_t turnNum) {
+  m_boardAndGameState = {};
+
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < k_totalPieces / 2; ++j) {
+      auto *pieceToStore = m_pieces[i][j].get();
+      CONTINUE_IF_NULL(pieceToStore);
+
+      const auto &color = pieceToStore->getColor();
+      const auto &position = pieceToStore->getPosition();
+
+      if (dynamic_cast<Pawn *>(pieceToStore)) {
+        m_boardAndGameState.pawns.emplace_back(color, position);
+      } else if (dynamic_cast<Knight *>(pieceToStore)) {
+        m_boardAndGameState.knights.emplace_back(color, position);
+      } else if (dynamic_cast<Bishop *>(pieceToStore)) {
+        m_boardAndGameState.bishops.emplace_back(color, position);
+      } else if (dynamic_cast<Rook *>(pieceToStore)) {
+        m_boardAndGameState.rooks.emplace_back(color, position);
+      } else if (dynamic_cast<Queen *>(pieceToStore)) {
+        m_boardAndGameState.queens.emplace_back(color, position);
+      } else if (dynamic_cast<King *>(pieceToStore)) {
+        m_boardAndGameState.kings.emplace_back(color, position);
+      }
+    }
+  }
+
+  m_boardAndGameState.castleStatus = m_castleStatus;
+  m_boardAndGameState.enPassantTarget = m_enPassantSquare;
+
+  // Arguments are passed from game instance
+  m_boardAndGameState.whoseTurn = color;
+  m_boardAndGameState.halfMoveNum = halfMoveNum;
+  m_boardAndGameState.turnNum = turnNum;
+
+  return m_boardAndGameState;
 }

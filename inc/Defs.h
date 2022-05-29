@@ -1,6 +1,7 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#include <algorithm>
 #include <array>
 #include <bitset>
 #include <cctype>
@@ -10,6 +11,7 @@
 #include <queue>
 #include <regex>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -69,5 +71,18 @@ constexpr int k_blackKingsideIndex = 0;
 constexpr int k_blackQueensideIndex = 1;
 constexpr int k_whiteKingsideIndex = 2;
 constexpr int k_whiteQueensideIndex = 3;
+
+// A full move in this case contains all possible information about a
+// potential move: the color, piece type, and starting and ending positions
+// This is particularly useful for the computer player
+struct FullMove {
+  PieceType pieceType;
+  Color color;
+  Position start;
+  Position end;
+
+  FullMove(PieceType pieceType, Color color, Position start, Position end)
+      : pieceType(pieceType), color(color), start(start), end(end) {}
+};
 
 #endif // DEFS_H

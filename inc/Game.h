@@ -3,6 +3,9 @@
 
 #include "Defs.h"
 
+// Class to define the game state
+// Handles turns and game completion, and is 
+// responsible for parsing moves and FEN
 class Game {
 public:
   Game() {}
@@ -28,6 +31,8 @@ public:
   }
 
   inline size_t whatTurnIsIt() const { return m_turnNum; }
+
+  inline size_t getHalfMoveCount() const { return m_halfMoveNum; }
 
   inline void switchPlayers() {
     m_whiteToMove = !m_whiteToMove;
@@ -62,13 +67,26 @@ private:
     }
   }
 
+  // True if there is a game in progress
   bool m_inProgress = true;
+
+  // True if it's white's turn
   bool m_whiteToMove = true;
+
+  // Winner of the game, if any
   std::optional<Color> m_winner = std::nullopt;
+
+  // Flag so the result doesn't spam
   mutable bool m_displayWinnerOnceFlag = true;
 
+  // How many turns have passed since pawn move or capture
   size_t m_fiftyMoveRuleNum = 0;
+
+  // How many turns each player has taken in total, i.e. combined black and
+  // white
   size_t m_halfMoveNum = 0;
+
+  // Turn number
   size_t m_turnNum = 1;
 };
 

@@ -85,7 +85,9 @@ int Application::run() {
       break;
     }
 
-    m_window->render();
+    if (!m_legacyMode) {
+      m_window->render();
+    }
 
     runEnd = std::chrono::system_clock::now();
     diff = runEnd - runStart;
