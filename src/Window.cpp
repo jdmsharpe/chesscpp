@@ -8,6 +8,8 @@ namespace {
 // 16 ms is equivalent to ~60 FPS (really 62.5 FPS)
 constexpr int k_dt = 16; // ms
 
+constexpr double k_checkmateValue = 2000;
+
 Position convertMouseInputToPosition(const int x, const int y) {
   return {x / k_squareWidth, std::abs((y / k_squareWidth))};
 }
@@ -121,7 +123,18 @@ void Window::handleMouseInput(const SDL_MouseButtonEvent &mbe) {
   }
 }
 
-void Window::handleKeyboardInput(const SDL_KeyboardEvent &kbe) {}
+void Window::handleKeyboardInput(const SDL_KeyboardEvent &kbe) {
+  const Uint8 *kb = SDL_GetKeyboardState(NULL);
+
+  if (kbe.keysym.sym == SDLK_r) {
+    m_board.loadGame();
+    m_game.reset();
+
+    if (m_computer.getColor().has_value()) {
+      m_computer.reset();
+    }
+  }
+}
 
 void Window::stepGame() {
   if (m_legacyMode) {
@@ -210,7 +223,7 @@ void Window::endGame() {
 bool Window::makePlayerMove() {
   // Ensures valid moves are populated on first turn
   // Little hacky but I think it's okay
-  if (m_game.whatTurnIsIt() == 1) {
+  if (m_game.whatTurnIsIt() <= 1) {
     m_board.updateBoardState({}, {});
   }
 
@@ -268,10 +281,8 @@ bool Window::makeComputerMove() {
   // TODO: Has a bug where computer's king doesn't highlight when in check
   // std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
-  LumpedBoardAndGameState currentState = m_board.getBoardAndGameState(
-      m_game.whoseTurnIsIt(), m_game.getHalfMoveCount(),
-      m_game.whatTurnIsIt());
-
+  const auto &currentState = m_board.getBoardAndGameState(
+      m_game.whoseTurnIsIt(), m_game.getHalfMoveCount(), m_game.whatTurnIsIt());
   m_computer.setBoardAndGameState(currentState);
 
   m_computer.setAvailableMoves(m_board.getAllValidMoves());
@@ -279,17 +290,23 @@ bool Window::makeComputerMove() {
 
   std::pair<FullMove, double> bestMove = {m_computer.getAllValidMoves()[0],
                                           0.0};
-  const auto& moveToTry = m_computer.getRandomMove();
+  const auto &moveToTry = m_computer.getRandomMove();
   bestMove.first.start = moveToTry.first;
   bestMove.first.end = moveToTry.second;
 
   for (size_t i = 0; i < m_computer.getValidMoveSize(); ++i) {
     double moveAdvantage = 0.0;
     m_board.loadFromState(m_computer.tryMove(i));
-    moveAdvantage =
-        m_computer.calculateAdvantage(m_board.getBoardAndGameState(
-            m_computer.getColor().value(), m_game.getHalfMoveCount(),
-            m_game.getMoveCount()));
+    moveAdvantage = m_computer.calculateAdvantage(m_board.getBoardAndGameState(
+        m_computer.getColor().value(), m_game.getHalfMoveCount(),
+        m_game.getMoveCount()));
+
+    // Check if move leads to checkmate
+    if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {
+      moveAdvantage += (m_computer.getColor() == Color::white)
+                           ? k_checkmateValue
+                           : -k_checkmateValue;
+    }
 
     if (m_computer.getColor() == Color::white) {
       if (moveAdvantage >= bestMove.second) {
@@ -304,8 +321,7 @@ bool Window::makeComputerMove() {
     }
   }
 
-  std::cout << "The best move advantage was: " << bestMove.second
-            << std::endl;
+  std::cout << "The best move advantage was: " << bestMove.second << std::endl;
   std::cout << "The move was from: " << bestMove.first.start.first << " "
             << bestMove.first.start.second
             << " to: " << bestMove.first.end.first << " "

@@ -11,6 +11,8 @@ public:
   Game() {}
   ~Game() {}
 
+  void reset();
+
   inline bool isInProgress() const { return m_inProgress; }
 
   inline void endWithDraw() { m_inProgress = false; }

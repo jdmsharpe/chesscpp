@@ -9,6 +9,8 @@ public:
   AI() {}
   ~AI() {}
 
+  void reset();
+
   void setAvailableMoves(const std::vector<FullMove> &validMoves);
   inline void setBoardAndGameState(const LumpedBoardAndGameState &states) {
     m_boardAndGameStates.emplace_back(states);
