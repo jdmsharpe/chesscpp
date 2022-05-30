@@ -25,5 +25,4 @@ The following options can be passed as an additional argument when running the e
 * Observe half-move rule
 * Investigate edge cases
 * Update unit tests for Board
-* FEN output of arbitrary board state (stretch goal)
-* AI (stretch goal)
+* FEN output of arbitrary board state
