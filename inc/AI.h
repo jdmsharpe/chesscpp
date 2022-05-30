@@ -16,7 +16,7 @@ public:
 
   void updateAdvantage();
   double calculateAdvantage(const LumpedBoardAndGameState &state);
-  std::pair<Position, Position> calculateMove();
+  std::pair<Position, Position> getRandomMove();
 
   const LumpedBoardAndGameState tryMove(size_t index) const;
 

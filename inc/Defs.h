@@ -17,7 +17,7 @@
 #include <vector>
 
 // Enables debug logging
-static volatile bool k_verbose = false;
+static bool k_verbose = false;
 
 // Increments after every application run() call
 static volatile long k_counter = 0;

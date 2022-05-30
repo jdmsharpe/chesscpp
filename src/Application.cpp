@@ -34,6 +34,11 @@ Application::Application(int argc, char **argv)
     k_verbose = true;
   }
 
+  // Passing "-c" as an additional argument adds a computer player
+  if (argumentPassed(argv, argv + argc, "-c")) {
+    m_window->setComputerPlaying(true);
+  }
+
   m_appState = AppState::GAME_IN_PROGRESS;
 }
 

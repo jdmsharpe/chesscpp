@@ -176,108 +176,19 @@ void Window::stepSdlGame() {
     m_board.highlightKingInCheck(m_game.whoseTurnIsIt());
   }
 
-  if (m_game.whoseTurnIsIt() != m_computer.getColor()) {
-    // Standard mode uses SDL for graphics
-    if (m_clickedPositionQueue.size() < 1) {
-      // No input to process
-      m_board.clearOldPieceHighlight();
-      return;
-    }
-
-    if (!m_board.isInputValid(m_game.whoseTurnIsIt(), m_clickedPositionQueue)) {
-      m_clickedPositionQueue.pop();
-      return;
-    }
-
-    // Ensures valid moves are populated on first turn
-    // Little hacky but I think it's okay
-    if (m_game.whatTurnIsIt() == 1) {
-      m_board.updateBoardState({}, {});
-    }
-
-    if (m_clickedPositionQueue.size() < 2) {
-      m_board.highlightPotentialMoves(m_clickedPositionQueue.front());
-      return;
-    }
-
-    // LMB was clicked twice and two valid positions were stored
-    Position firstPosition = m_clickedPositionQueue.front();
-    m_clickedPositionQueue.pop();
-
-    Position secondPosition = m_clickedPositionQueue.front();
-    m_clickedPositionQueue.pop();
-
-    if (m_board.isValidMove(m_game.whoseTurnIsIt(), firstPosition,
-                            secondPosition, false)) {
-      m_board.movePiece(firstPosition, secondPosition);
-      m_board.updateBoardState(firstPosition, secondPosition);
-
-      while (m_board.pawnToPromote()) {
-        m_game.outputPromotionRules();
-        std::cin >> m_promotionInput;
-        if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
-          m_board.promotePawn(m_promotionOutput);
-          // Call this again to update valid moves
-          m_board.updateBoardState(firstPosition, secondPosition);
-          break;
-        }
+  if (m_isComputerPlaying) {
+    if (m_game.whoseTurnIsIt() != m_computer.getColor()) {
+      if (!makePlayerMove()) {
+        return;
       }
     } else {
-      // Not a valid move
-      return;
-    }
-  } else {
-    // Simple sleep to not make moves almost instantaneous
-    // Can probably perform this some other way but this works for now
-    // TODO: Has a bug where computer's king doesn't highlight when in check
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
-    LumpedBoardAndGameState currentState = m_board.getBoardAndGameState(
-        m_game.whoseTurnIsIt(), m_game.getHalfMoveCount(),
-        m_game.whatTurnIsIt());
-
-    m_computer.setBoardAndGameState(currentState);
-
-    m_computer.setAvailableMoves(m_board.getAllValidMoves());
-    m_computer.updateAdvantage();
-
-    std::pair<FullMove, double> bestMove = {m_computer.getAllValidMoves()[0],
-                                            0.0};
-    const auto& moveToTry = m_computer.calculateMove();
-    bestMove.first.start = moveToTry.first;
-    bestMove.first.end = moveToTry.second;
-
-    for (size_t i = 0; i < m_computer.getValidMoveSize(); ++i) {
-      double moveAdvantage = 0.0;
-      m_board.loadFromState(m_computer.tryMove(i));
-      moveAdvantage =
-          m_computer.calculateAdvantage(m_board.getBoardAndGameState(
-              m_computer.getColor().value(), m_game.getHalfMoveCount(),
-              m_game.getMoveCount()));
-
-      if (m_computer.getColor() == Color::white) {
-        if (moveAdvantage >= bestMove.second) {
-          bestMove.first = m_computer.getAllValidMoves()[i];
-          bestMove.second = moveAdvantage;
-        }
-      } else {
-        if (moveAdvantage <= bestMove.second) {
-          bestMove.first = m_computer.getAllValidMoves()[i];
-          bestMove.second = moveAdvantage;
-        }
+      if (!makeComputerMove()) {
+        return;
       }
     }
-
-    // Reset board
-    m_board.loadFromState(currentState);
-
-    const auto &move = bestMove.first;
-    // This call is enforced because the function is responsible for the move in
-    // some cases
-    if (m_board.isValidMove(m_game.whoseTurnIsIt(), move.start, move.end,
-                            false)) {
-      m_board.movePiece(move.start, move.end);
-      m_board.updateBoardState(move.start, move.end);
+  } else {
+    if (!makePlayerMove()) {
+      return;
     }
   }
 
@@ -294,4 +205,125 @@ void Window::stepSdlGame() {
 void Window::endGame() {
   // m_board.cliDisplay(m_game.whoseTurnIsIt());
   m_game.whoWon();
+}
+
+bool Window::makePlayerMove() {
+  // Ensures valid moves are populated on first turn
+  // Little hacky but I think it's okay
+  if (m_game.whatTurnIsIt() == 1) {
+    m_board.updateBoardState({}, {});
+  }
+
+  // Standard mode uses SDL for graphics
+  if (m_clickedPositionQueue.size() < 1) {
+    // No input to process
+    m_board.clearOldPieceHighlight();
+    return false;
+  }
+
+  if (!m_board.isInputValid(m_game.whoseTurnIsIt(), m_clickedPositionQueue)) {
+    m_clickedPositionQueue.pop();
+    return false;
+  }
+
+  if (m_clickedPositionQueue.size() < 2) {
+    m_board.highlightPotentialMoves(m_clickedPositionQueue.front());
+    return false;
+  }
+
+  // LMB was clicked twice and two valid positions were stored
+  Position firstPosition = m_clickedPositionQueue.front();
+  m_clickedPositionQueue.pop();
+
+  Position secondPosition = m_clickedPositionQueue.front();
+  m_clickedPositionQueue.pop();
+
+  if (m_board.isValidMove(m_game.whoseTurnIsIt(), firstPosition, secondPosition,
+                          false)) {
+    m_board.movePiece(firstPosition, secondPosition);
+    m_board.updateBoardState(firstPosition, secondPosition);
+
+    while (m_board.pawnToPromote()) {
+      m_game.outputPromotionRules();
+      std::cin >> m_promotionInput;
+      if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
+        m_board.promotePawn(m_promotionOutput);
+        // Call this again to update valid moves
+        m_board.updateBoardState(firstPosition, secondPosition);
+        break;
+      }
+    }
+
+    return true;
+
+  } else {
+    // Not a valid move
+    return false;
+  }
+}
+
+bool Window::makeComputerMove() {
+  // Simple sleep to not make moves almost instantaneous
+  // Can probably perform this some other way but this works for now
+  // TODO: Has a bug where computer's king doesn't highlight when in check
+  // std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+  LumpedBoardAndGameState currentState = m_board.getBoardAndGameState(
+      m_game.whoseTurnIsIt(), m_game.getHalfMoveCount(),
+      m_game.whatTurnIsIt());
+
+  m_computer.setBoardAndGameState(currentState);
+
+  m_computer.setAvailableMoves(m_board.getAllValidMoves());
+  m_computer.updateAdvantage();
+
+  std::pair<FullMove, double> bestMove = {m_computer.getAllValidMoves()[0],
+                                          0.0};
+  const auto& moveToTry = m_computer.getRandomMove();
+  bestMove.first.start = moveToTry.first;
+  bestMove.first.end = moveToTry.second;
+
+  for (size_t i = 0; i < m_computer.getValidMoveSize(); ++i) {
+    double moveAdvantage = 0.0;
+    m_board.loadFromState(m_computer.tryMove(i));
+    moveAdvantage =
+        m_computer.calculateAdvantage(m_board.getBoardAndGameState(
+            m_computer.getColor().value(), m_game.getHalfMoveCount(),
+            m_game.getMoveCount()));
+
+    if (m_computer.getColor() == Color::white) {
+      if (moveAdvantage >= bestMove.second) {
+        bestMove.first = m_computer.getAllValidMoves()[i];
+        bestMove.second = moveAdvantage;
+      }
+    } else {
+      if (moveAdvantage <= bestMove.second) {
+        bestMove.first = m_computer.getAllValidMoves()[i];
+        bestMove.second = moveAdvantage;
+      }
+    }
+  }
+
+  std::cout << "The best move advantage was: " << bestMove.second
+            << std::endl;
+  std::cout << "The move was from: " << bestMove.first.start.first << " "
+            << bestMove.first.start.second
+            << " to: " << bestMove.first.end.first << " "
+            << bestMove.first.end.second << std::endl;
+
+  // Reset board
+  m_board.loadFromState(currentState);
+
+  const auto &move = bestMove.first;
+  // This call is enforced because the function is responsible for the move in
+  // some cases
+  if (m_board.isValidMove(m_game.whoseTurnIsIt(), move.start, move.end,
+                          false)) {
+    m_board.movePiece(move.start, move.end);
+    m_board.updateBoardState(move.start, move.end);
+
+    return true;
+  }
+
+  return false;
 }

@@ -28,9 +28,17 @@ public:
   void stepGame();
   void endGame();
 
+  inline bool isComputerPlaying() const { return m_isComputerPlaying; }
+  inline void setComputerPlaying(const bool isPlaying) {
+    m_isComputerPlaying = isPlaying;
+  }
+
 private:
   void stepSdlGame();
   void stepLegacyGame();
+  
+  bool makePlayerMove();
+  bool makeComputerMove();
 
   Board m_board;
   Game m_game;
@@ -38,6 +46,9 @@ private:
 
   // True if legacy mode is enabled
   bool m_legacyMode = false;
+
+  // True if the computer is a player
+  bool m_isComputerPlaying = false;
 
   // -------------- Parameters exclusive to graphical mode --------------
   SDL_Renderer *m_sdlRenderer;
