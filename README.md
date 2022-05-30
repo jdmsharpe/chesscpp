@@ -18,8 +18,9 @@ At some point, I might try to write an AI so this can be fully 1-player.
 ## Additional Options
 The following options can be passed as an additional argument when running the executable, e.g. `./chess -l`.
 * Passing `-l` will load a board state from the `load.fen` file under `inc`
+* Passing `-c` will start a game with a computer player
 * Passing `-v` will enable verbose/debugging mode
-* Passing `--legacy` will enable legacy CLI mode with no SDL graphics
+* Passing `--legacy` will enable legacy CLI mode with no SDL graphics (only supports 2-player)
 
 ## Remaining Work
 * Observe half-move rule
