@@ -9,9 +9,10 @@ bool Piece::isValidMove(const Position &move) const {
 }
 
 bool Pawn::isValidMove(const Position &move) const {
+  int startingRow = (m_color == Color::white) ? 1 : 6;
   int sign = (m_color == Color::white) ? -1 : 1;
 
-  if (m_startingPosition == m_position) {
+  if (m_position.second == startingRow) {
     if ((m_position.first == move.first) &&
         (m_position.second == move.second + (sign * 2))) {
       return true;

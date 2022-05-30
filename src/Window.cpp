@@ -15,7 +15,7 @@ Position convertMouseInputToPosition(const int x, const int y) {
 } // namespace
 
 Window::Window(const bool isLegacyMode)
-    : m_board(Board()), m_game(Game()), m_computer(std::make_unique<AI>()),
+    : m_board(Board()), m_game(Game()), m_computer(AI()),
       m_legacyMode(isLegacyMode) {
   if (!m_legacyMode) {
     open();
@@ -28,7 +28,7 @@ Window::~Window() {
   }
 }
 
-// Boilerplate SDL code, for the most part
+// Boilerplate SDL code
 void Window::open() {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     SDL_LogError(SDL_LOG_CATEGORY_ERROR,
@@ -176,7 +176,7 @@ void Window::stepSdlGame() {
     m_board.highlightKingInCheck(m_game.whoseTurnIsIt());
   }
 
-  if (m_game.whoseTurnIsIt() != m_computer->getColor()) {
+  if (m_game.whoseTurnIsIt() != m_computer.getColor()) {
     // Standard mode uses SDL for graphics
     if (m_clickedPositionQueue.size() < 1) {
       // No input to process
@@ -207,8 +207,8 @@ void Window::stepSdlGame() {
     Position secondPosition = m_clickedPositionQueue.front();
     m_clickedPositionQueue.pop();
 
-    if (m_board.isValidMove(m_game.whoseTurnIsIt(), firstPosition, secondPosition,
-                            false)) {
+    if (m_board.isValidMove(m_game.whoseTurnIsIt(), firstPosition,
+                            secondPosition, false)) {
       m_board.movePiece(firstPosition, secondPosition);
       m_board.updateBoardState(firstPosition, secondPosition);
 
@@ -217,8 +217,14 @@ void Window::stepSdlGame() {
         std::cin >> m_promotionInput;
         if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
           m_board.promotePawn(m_promotionOutput);
+          // Call this again to update valid moves
+          m_board.updateBoardState(firstPosition, secondPosition);
+          break;
         }
       }
+    } else {
+      // Not a valid move
+      return;
     }
   } else {
     // Simple sleep to not make moves almost instantaneous
@@ -226,14 +232,53 @@ void Window::stepSdlGame() {
     // TODO: Has a bug where computer's king doesn't highlight when in check
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
-    m_computer->setBoardAndGameState(m_board.getBoardAndGameState(
+    LumpedBoardAndGameState currentState = m_board.getBoardAndGameState(
         m_game.whoseTurnIsIt(), m_game.getHalfMoveCount(),
-        m_game.whatTurnIsIt()));
+        m_game.whatTurnIsIt());
 
-    m_computer->setAvailableMoves(m_board.getAllValidMoves());
-    const auto &move = m_computer->calculateMove();
-    m_board.movePiece(move.first, move.second);
-    m_board.updateBoardState(move.first, move.second);
+    m_computer.setBoardAndGameState(currentState);
+
+    m_computer.setAvailableMoves(m_board.getAllValidMoves());
+    m_computer.updateAdvantage();
+
+    std::pair<FullMove, double> bestMove = {m_computer.getAllValidMoves()[0],
+                                            0.0};
+    const auto& moveToTry = m_computer.calculateMove();
+    bestMove.first.start = moveToTry.first;
+    bestMove.first.end = moveToTry.second;
+
+    for (size_t i = 0; i < m_computer.getValidMoveSize(); ++i) {
+      double moveAdvantage = 0.0;
+      m_board.loadFromState(m_computer.tryMove(i));
+      moveAdvantage =
+          m_computer.calculateAdvantage(m_board.getBoardAndGameState(
+              m_computer.getColor().value(), m_game.getHalfMoveCount(),
+              m_game.getMoveCount()));
+
+      if (m_computer.getColor() == Color::white) {
+        if (moveAdvantage >= bestMove.second) {
+          bestMove.first = m_computer.getAllValidMoves()[i];
+          bestMove.second = moveAdvantage;
+        }
+      } else {
+        if (moveAdvantage <= bestMove.second) {
+          bestMove.first = m_computer.getAllValidMoves()[i];
+          bestMove.second = moveAdvantage;
+        }
+      }
+    }
+
+    // Reset board
+    m_board.loadFromState(currentState);
+
+    const auto &move = bestMove.first;
+    // This call is enforced because the function is responsible for the move in
+    // some cases
+    if (m_board.isValidMove(m_game.whoseTurnIsIt(), move.start, move.end,
+                            false)) {
+      m_board.movePiece(move.start, move.end);
+      m_board.updateBoardState(move.start, move.end);
+    }
   }
 
   if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {

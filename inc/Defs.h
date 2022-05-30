@@ -83,6 +83,7 @@ struct FullMove {
 
   FullMove(PieceType pieceType, Color color, Position start, Position end)
       : pieceType(pieceType), color(color), start(start), end(end) {}
+  FullMove() {}
 };
 
 #endif // DEFS_H

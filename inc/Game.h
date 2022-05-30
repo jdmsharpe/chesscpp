@@ -34,6 +34,8 @@ public:
 
   inline size_t getHalfMoveCount() const { return m_halfMoveNum; }
 
+  inline size_t getMoveCount() const { return m_turnNum; }
+
   inline void switchPlayers() {
     m_whiteToMove = !m_whiteToMove;
     ++m_halfMoveNum;

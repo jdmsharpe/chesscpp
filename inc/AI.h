@@ -10,14 +10,21 @@ public:
   ~AI() {}
 
   void setAvailableMoves(const std::vector<FullMove> &validMoves);
-  inline void setBoardAndGameState(const LumpedBoardAndGameState& states) {
-      m_boardAndGameState = states;
+  inline void setBoardAndGameState(const LumpedBoardAndGameState &states) {
+    m_boardAndGameStates.emplace_back(states);
   }
 
+  void updateAdvantage();
+  double calculateAdvantage(const LumpedBoardAndGameState &state);
   std::pair<Position, Position> calculateMove();
+
+  const LumpedBoardAndGameState tryMove(size_t index) const;
 
   inline std::optional<Color> getColor() { return m_color; }
   inline void setColor(Color color) { m_color = color; }
+
+  inline std::vector<FullMove> getAllValidMoves() { return m_allValidMoves; }
+  inline size_t getValidMoveSize() { return m_allValidMoves.size(); }
 
 private:
   // For now, hardcode
@@ -27,7 +34,11 @@ private:
   // Stores all valid moves for the computer color
   std::vector<FullMove> m_allValidMoves = {};
 
-  LumpedBoardAndGameState m_boardAndGameState = {};
+  std::vector<LumpedBoardAndGameState> m_boardAndGameStates = {};
+
+  std::pair<Position, Position> m_selectedMove = {};
+
+  double m_advantage = 0.0;
 };
 
 #endif // AI_H

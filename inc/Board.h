@@ -13,7 +13,7 @@
 // TODO: Refactor into two classes - maybe one responsible for SDL stuff
 class Board {
 public:
-  Board() {}
+  Board() = default;
 
   ~Board();
 
@@ -26,7 +26,7 @@ public:
 
   void loadGame();
 
-  void loadFromFen(const LumpedBoardAndGameState &state);
+  void loadFromState(const LumpedBoardAndGameState &state);
 
   void cliDisplay(Color color);
 
@@ -70,6 +70,8 @@ public:
   const LumpedBoardAndGameState &
   getBoardAndGameState(Color color, size_t halfMoveNum, size_t turnNum);
 
+  const Piece *getKingFromColor(Color color) const;
+
 private:
   void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor);
 
@@ -99,10 +101,10 @@ private:
   // Holds texture of image with all piece sprites
   SDL_Texture *m_pieceImageTexture = NULL;
 
-  using Pieces =
-      std::array<std::array<std::unique_ptr<Piece>, k_totalPieces / 2>, 2>;
+  // First dimension of 2D vector is for each color
+  using Pieces = std::vector<std::vector<std::unique_ptr<Piece>>>;
   // Container for every piece
-  Pieces m_pieces;
+  Pieces m_pieces = {};
 
   LumpedBoardAndGameState m_boardAndGameState = {};
 

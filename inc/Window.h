@@ -21,7 +21,7 @@ public:
   void handleKeyboardInput(const SDL_KeyboardEvent &kbe);
 
   inline void loadGame() { m_board.loadGame(); }
-  inline void loadFen() { m_board.loadFromFen(m_game.parseFen()); }
+  inline void loadFen() { m_board.loadFromState(m_game.parseFen()); }
 
   inline bool isGameInProgress() { return m_game.isInProgress(); }
 
@@ -34,8 +34,7 @@ private:
 
   Board m_board;
   Game m_game;
-
-  std::unique_ptr<AI> m_computer = nullptr;
+  AI m_computer;
 
   // True if legacy mode is enabled
   bool m_legacyMode = false;
