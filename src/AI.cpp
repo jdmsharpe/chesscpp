@@ -5,27 +5,27 @@
 
 namespace {
 
-// Source:
+// Credits to first answer:
 // https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
-template <typename Iter, typename RandomGenerator>
-Iter selectRandomly(Iter start, Iter end, RandomGenerator &g) {
+template <typename it, typename RandomGenerator>
+it selectRandomly(it start, it end, RandomGenerator &g) {
   std::uniform_int_distribution<> dis(0, std::distance(start, end) - 1);
   std::advance(start, dis(g));
   return start;
 }
 
-template <typename Iter> Iter selectRandomly(Iter start, Iter end) {
+template <typename it> it selectRandomly(it start, it end) {
   static std::random_device rd;
   static std::mt19937 gen(rd());
   return selectRandomly(start, end, gen);
 }
 
-constexpr int k_pawnValue = 1;
-constexpr int k_knightValue = 3;
-constexpr int k_bishopValue = 3;
-constexpr int k_rookValue = 5;
-constexpr int k_queenValue = 9;
-constexpr int k_kingValue = 100;
+constexpr int k_pawnValue = 10;
+constexpr int k_knightValue = 30;
+constexpr int k_bishopValue = 30;
+constexpr int k_rookValue = 50;
+constexpr int k_queenValue = 90;
+constexpr int k_kingValue = 900;
 
 } // namespace
 
@@ -119,7 +119,7 @@ double AI::calculateAdvantage(const LumpedBoardAndGameState &state) {
   return advantage;
 }
 
-std::pair<Position, Position> AI::calculateMove() {
+std::pair<Position, Position> AI::getRandomMove() {
   auto result =
       selectRandomly(m_allValidMoves.cbegin(), m_allValidMoves.cend());
   m_selectedMove = {result->start, result->end};
