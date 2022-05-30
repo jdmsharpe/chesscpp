@@ -31,6 +31,16 @@ constexpr int k_turnIndex = 12;
 
 } // namespace
 
+void Game::reset() {
+  m_whiteToMove = true;
+  m_winner.reset();
+  m_displayWinnerOnceFlag = true;
+
+  m_fiftyMoveRuleNum = 0;
+  m_halfMoveNum = 0;
+  m_turnNum = 1;
+}
+
 void Game::whoWon() const {
   // Only print one time
   if (m_displayWinnerOnceFlag) {

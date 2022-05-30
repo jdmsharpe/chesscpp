@@ -68,9 +68,7 @@ public:
   }
 
   const LumpedBoardAndGameState &
-  getBoardAndGameState(Color color, size_t halfMoveNum, size_t turnNum);
-
-  const Piece *getKingFromColor(Color color) const;
+  getBoardAndGameState(Color color, size_t halfMoveNum = 0, size_t turnNum = 1);
 
 private:
   void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor);
@@ -95,6 +93,8 @@ private:
                             const Position &end);
 
   void setKingCastleStatus(Color color, CastleSide side);
+
+  const Piece *getKingFromColor(Color color) const;
 
   SDL_Renderer *m_renderer = NULL;
 

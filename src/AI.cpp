@@ -1,4 +1,5 @@
 #include "AI.h"
+#include "Board.h"
 
 #include <iterator>
 #include <random>
@@ -28,6 +29,15 @@ constexpr int k_queenValue = 90;
 constexpr int k_kingValue = 900;
 
 } // namespace
+
+void AI::reset() {
+  m_color = Color::black;
+
+  m_allValidMoves.clear();
+  m_selectedMove = {};
+
+  m_advantage = 0.0;
+}
 
 void AI::setAvailableMoves(const std::vector<FullMove> &validMoves) {
   // Should always reset before copying
@@ -141,11 +151,13 @@ const LumpedBoardAndGameState AI::tryMove(size_t index) const {
     // Another pawn got taken
     if (toReturn.pawns[i].second == moveToTry.end) {
       toReturn.pawns.erase(toReturn.pawns.begin() + i);
-    } else if (toReturn.enPassantTarget.has_value()) {
-      if (toReturn.enPassantTarget.value() == moveToTry.end) {
-        toReturn.pawns.erase(toReturn.pawns.begin() + i);
-      }
     }
+    // I don't think this is actually necessary
+    // } else if (toReturn.enPassantTarget.has_value()) {
+    //   if (toReturn.enPassantTarget.value() == moveToTry.end) {
+    //     toReturn.pawns.erase(toReturn.pawns.begin() + i);
+    //   }
+    // }
   }
   
   for (size_t i = 0; i < toReturn.knights.size(); ++i) {
