@@ -64,6 +64,11 @@ void Board::loadTextures() {
 }
 
 void Board::loadGame() {
+  m_pieces.resize(2);
+  for (size_t i = 0; i < 2; ++i) {
+    m_pieces[i].resize(k_totalPieces / 2);
+  }
+
   for (int i = 0; i < k_pawnsPerSide; ++i) {
     m_pieces[1][i] = makePiece<Pawn>(Color::white, {i, 1});
   }
@@ -91,10 +96,17 @@ void Board::loadGame() {
   m_pieces[0][k_pawnsPerSide + 7] = makePiece<King>(Color::black, {4, 7});
 }
 
-void Board::loadFromFen(const LumpedBoardAndGameState &state) {
+void Board::loadFromState(const LumpedBoardAndGameState &state) {
+  for (size_t i = 0; i < m_pieces.size(); ++i) {
+    m_pieces[i].clear();
+  }
+
+  m_pieces.clear();
+  m_pieces.resize(2);
+
   // Wow, templated lambdas! C++20 is hot stuff
   auto createPiecesFromContainer =
-      [this]<class T>(const PieceContainer &container, int offset) {
+      [this]<class T>(const PieceContainer &container) {
         int blackCounter = 0;
         int whiteCounter = 0;
 
@@ -102,12 +114,10 @@ void Board::loadFromFen(const LumpedBoardAndGameState &state) {
           const auto piece = container[i];
 
           if (piece.first == Color::black) {
-            m_pieces[0][blackCounter + offset] =
-                makePiece<T>(piece.first, piece.second);
+            m_pieces[0].emplace_back(makePiece<T>(piece.first, piece.second));
             ++blackCounter;
           } else if (piece.first == Color::white) {
-            m_pieces[1][whiteCounter + offset] =
-                makePiece<T>(piece.first, piece.second);
+            m_pieces[1].emplace_back(makePiece<T>(piece.first, piece.second));
             ++whiteCounter;
           }
         }
@@ -115,17 +125,12 @@ void Board::loadFromFen(const LumpedBoardAndGameState &state) {
 
   // I have to be real with you, though, this syntax is an abomination
   // Even Intellisense is mad about it
-  createPiecesFromContainer.template operator()<Pawn>(state.pawns, 0);
-  createPiecesFromContainer.template operator()<Rook>(state.rooks,
-                                                      k_pawnsPerSide);
-  createPiecesFromContainer.template operator()<Knight>(state.knights,
-                                                        k_pawnsPerSide + 2);
-  createPiecesFromContainer.template operator()<Bishop>(state.bishops,
-                                                        k_pawnsPerSide + 4);
-  createPiecesFromContainer.template operator()<Queen>(state.queens,
-                                                       k_pawnsPerSide + 6);
-  createPiecesFromContainer.template operator()<King>(state.kings,
-                                                      k_pawnsPerSide + 7);
+  createPiecesFromContainer.template operator()<Pawn>(state.pawns);
+  createPiecesFromContainer.template operator()<Rook>(state.rooks);
+  createPiecesFromContainer.template operator()<Knight>(state.knights);
+  createPiecesFromContainer.template operator()<Bishop>(state.bishops);
+  createPiecesFromContainer.template operator()<Queen>(state.queens);
+  createPiecesFromContainer.template operator()<King>(state.kings);
 
   m_castleStatus = state.castleStatus;
   m_enPassantSquare = state.enPassantTarget;
@@ -183,9 +188,9 @@ void Board::sdlDisplay() {
   }
 
   // Render all pieces
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < k_totalPieces / 2; ++j) {
-      sdlDrawPiece(m_pieces[i][j].get());
+  for (auto &side : m_pieces) {
+    for (auto &piece : side) {
+      sdlDrawPiece(piece.get());
     }
   }
 }
@@ -250,12 +255,12 @@ void Board::sdlDrawPiece(const Piece *piece) {
 }
 
 Piece *Board::getPieceAt(const Position &position) {
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < k_totalPieces / 2; ++j) {
-      CONTINUE_IF_NULL(m_pieces[i][j]);
+  for (auto &side : m_pieces) {
+    for (auto &piece : side) {
+      CONTINUE_IF_NULL(piece);
       // Doesn't really feel optimal, but it does work
-      if (m_pieces[i][j]->getPosition() == position) {
-        return m_pieces[i][j].get();
+      if (piece->getPosition() == position) {
+        return piece.get();
       }
     }
   }
@@ -264,8 +269,8 @@ Piece *Board::getPieceAt(const Position &position) {
 }
 
 std::pair<size_t, size_t> Board::getIndexOfPiece(const Piece *piece) {
-  for (size_t i = 0; i < 2; ++i) {
-    for (size_t j = 0; j < k_totalPieces / 2; ++j) {
+  for (size_t i = 0; i < m_pieces.size(); ++i) {
+    for (size_t j = 0; j < m_pieces[i].size(); ++j) {
       if (m_pieces[i][j].get() == piece) {
         return {i, j};
       }
@@ -278,12 +283,12 @@ std::pair<size_t, size_t> Board::getIndexOfPiece(const Piece *piece) {
 }
 
 void Board::capturePiece(const Position &position) {
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < k_totalPieces / 2; ++j) {
-      CONTINUE_IF_NULL(m_pieces[i][j]);
-      if (m_pieces[i][j]->getPosition() == position) {
-        m_pieces[i][j].reset();
-        m_pieces[i][j] = nullptr;
+  for (auto &side : m_pieces) {
+    for (auto &piece : side) {
+      CONTINUE_IF_NULL(piece);
+      if (piece->getPosition() == position) {
+        piece.reset();
+        piece = nullptr;
       }
     }
   }
@@ -300,8 +305,7 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
   }
 
   // Invalid position
-  if (end.first >= 8 || end.second >= 8 || end.first < 0 ||
-      end.second < 0) {
+  if (end.first >= 8 || end.second >= 8 || end.first < 0 || end.second < 0) {
     return false;
   }
 
@@ -310,7 +314,7 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
     return false;
   }
 
-  // Cannot capture pieces that are the same color
+  // Can't capture pieces that are the same color
   if (pieceAtDestination) {
     if (pieceToMove->getColor() == pieceAtDestination->getColor()) {
       return false;
@@ -777,10 +781,12 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
 }
 
 bool Board::isKingInCheck(Color color) {
-  // Don't like this hardcoding but it's convenient
-  const auto *king = (color == Color::white)
-                         ? m_pieces[1][k_pawnsPerSide + 7].get()
-                         : m_pieces[0][k_pawnsPerSide + 7].get();
+  const auto *king = getKingFromColor(color);
+
+  if (!king) {
+    // Should never happen
+    return false;
+  }
 
   return isSquareAttacked(color, king->getPosition());
 }
@@ -833,11 +839,11 @@ void Board::storeValidMoves() {
   // Initialize container to hold moves before they are added
   std::vector<FullMove> moveStorage;
 
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < k_totalPieces / 2; ++j) {
+  for (auto &side : m_pieces) {
+    for (auto &piece : side) {
       moveStorage.clear();
 
-      auto *pieceToCheck = m_pieces[i][j].get();
+      auto *pieceToCheck = piece.get();
 
       CONTINUE_IF_NULL(pieceToCheck);
 
@@ -853,8 +859,7 @@ void Board::storeValidMoves() {
       // Check piece type and add all possible moves to storage
       // The point of all this is to optimize the time to check moves.
       // By preselecting the only moves possible before checking if the moves
-      // are valid, there has to be some benefit. (not that I actually know what
-      // it is, though)
+      // are valid, there are less moves total to go through
       if (dynamic_cast<Pawn *>(pieceToCheck)) {
         int sign = (color == Color::white) ? 1 : -1;
 
@@ -1070,14 +1075,17 @@ bool Board::promotePawn(const PieceType &piece) {
   // Store the color of the pawn
   Color color = position.second == 7 ? Color::white : Color::black;
 
+  // Reset pointer
+  m_pieces[index.first][index.second].reset();
+
   if (piece == PieceType::knight) {
-    m_pieces[index.first][index.second].reset(new Knight(position, color));
+    m_pieces[index.first][index.second] = makePiece<Knight>(color, position);
   } else if (piece == PieceType::bishop) {
-    m_pieces[index.first][index.second].reset(new Bishop(position, color));
+    m_pieces[index.first][index.second] = makePiece<Bishop>(color, position);
   } else if (piece == PieceType::rook) {
-    m_pieces[index.first][index.second].reset(new Rook(position, color));
+    m_pieces[index.first][index.second] = makePiece<Rook>(color, position);
   } else if (piece == PieceType::queen) {
-    m_pieces[index.first][index.second].reset(new Queen(position, color));
+    m_pieces[index.first][index.second] = makePiece<Queen>(color, position);
   }
 
   m_pawnToPromote.reset();
@@ -1115,10 +1123,10 @@ void Board::updateBoardState(const Position &start, const Position &end) {
 
   // Refresh valid moves
   m_allValidMoves.clear();
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < k_totalPieces / 2; ++j) {
-      CONTINUE_IF_NULL(m_pieces[i][j]);
-      m_pieces[i][j]->clearValidMoves();
+  for (auto &side : m_pieces) {
+    for (auto &piece : side) {
+      CONTINUE_IF_NULL(piece);
+      piece->clearValidMoves();
     }
   }
 
@@ -1169,9 +1177,12 @@ void Board::highlightPotentialMoves(const Position &position) {
 }
 
 void Board::highlightKingInCheck(Color color) {
-  const auto *king = (color == Color::white)
-                         ? m_pieces[1][k_pawnsPerSide + 7].get()
-                         : m_pieces[0][k_pawnsPerSide + 7].get();
+  const auto *king = getKingFromColor(color);
+
+  if (!king) {
+    // Should never happen
+    return;
+  }
 
   m_kingToHighlight = king->getPosition();
 }
@@ -1180,9 +1191,9 @@ const LumpedBoardAndGameState &
 Board::getBoardAndGameState(Color color, size_t halfMoveNum, size_t turnNum) {
   m_boardAndGameState = {};
 
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < k_totalPieces / 2; ++j) {
-      auto *pieceToStore = m_pieces[i][j].get();
+  for (auto &side : m_pieces) {
+    for (auto &piece : side) {
+      auto *pieceToStore = piece.get();
       CONTINUE_IF_NULL(pieceToStore);
 
       const auto &color = pieceToStore->getColor();
@@ -1207,10 +1218,28 @@ Board::getBoardAndGameState(Color color, size_t halfMoveNum, size_t turnNum) {
   m_boardAndGameState.castleStatus = m_castleStatus;
   m_boardAndGameState.enPassantTarget = m_enPassantSquare;
 
-  // Arguments are passed from game instance
+  // Function arguments are passed from game instance
   m_boardAndGameState.whoseTurn = color;
   m_boardAndGameState.halfMoveNum = halfMoveNum;
   m_boardAndGameState.turnNum = turnNum;
 
   return m_boardAndGameState;
+}
+
+const Piece *Board::getKingFromColor(Color color) const {
+  Piece *king = nullptr;
+
+  for (const auto &side : m_pieces) {
+    for (const auto &piece : side) {
+      CONTINUE_IF_NULL(piece);
+
+      if (dynamic_cast<King *>(piece.get())) {
+        if (piece->getColor() == color) {
+          king = piece.get();
+        }
+      }
+    }
+  }
+
+  return king;
 }
