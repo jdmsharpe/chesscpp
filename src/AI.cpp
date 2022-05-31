@@ -47,20 +47,6 @@ void AI::setAvailableMoves(const std::vector<FullMove> &validMoves) {
   for (const auto &move : validMoves) {
     m_allValidMoves.emplace_back(move);
   }
-
-  auto checkForOpposingColor = [this](const FullMove &input) {
-    if (m_color.has_value()) {
-      return m_color != input.color;
-    }
-
-    return true;
-  };
-
-  // Don't need moves of opposing color here (for now?)
-  m_allValidMoves.erase(std::remove_if(m_allValidMoves.begin(),
-                                       m_allValidMoves.end(),
-                                       checkForOpposingColor),
-                        m_allValidMoves.end());
 }
 
 void AI::updateAdvantage() {
@@ -68,33 +54,31 @@ void AI::updateAdvantage() {
       m_boardAndGameStates[m_boardAndGameStates.size() - 1];
 
   for (size_t i = 0; i < currentState.pawns.size(); ++i) {
-    m_advantage +=
-        (currentState.pawns[i].first == Color::white ? k_pawnValue
-                                                      : -k_pawnValue);
+    m_advantage += (currentState.pawns[i].first == Color::white) ? k_pawnValue
+                                                                 : -k_pawnValue;
   }
   for (size_t i = 0; i < currentState.knights.size(); ++i) {
-    m_advantage +=
-        (currentState.knights[i].first == Color::white ? k_knightValue
-                                                        : -k_knightValue);
+    m_advantage += (currentState.knights[i].first == Color::white)
+                       ? k_knightValue
+                       : -k_knightValue;
   }
   for (size_t i = 0; i < currentState.bishops.size(); ++i) {
-    m_advantage +=
-        (currentState.bishops[i].first == Color::white ? k_bishopValue
-                                                        : -k_bishopValue);
+    m_advantage += (currentState.bishops[i].first == Color::white)
+                       ? k_bishopValue
+                       : -k_bishopValue;
   }
   for (size_t i = 0; i < currentState.rooks.size(); ++i) {
-    m_advantage +=
-        (currentState.rooks[i].first == Color::white ? k_rookValue
-                                                      : -k_rookValue);
+    m_advantage += (currentState.rooks[i].first == Color::white) ? k_rookValue
+                                                                 : -k_rookValue;
   }
   for (size_t i = 0; i < currentState.queens.size(); ++i) {
-    m_advantage +=
-        (currentState.queens[i].first == Color::white ? k_queenValue
-                                                       : -k_queenValue);
+    m_advantage += (currentState.queens[i].first == Color::white)
+                       ? k_queenValue
+                       : -k_queenValue;
   }
   for (size_t i = 0; i < currentState.kings.size(); ++i) {
-    m_advantage += (currentState.kings[i].first == Color::white ? k_kingValue
-                                                                : -k_kingValue);
+    m_advantage += (currentState.kings[i].first == Color::white) ? k_kingValue
+                                                                 : -k_kingValue;
   }
 }
 
@@ -143,14 +127,14 @@ const LumpedBoardAndGameState AI::tryMove(size_t index) const {
   const auto &moveToTry = m_allValidMoves[index];
 
   for (size_t i = 0; i < toReturn.pawns.size(); ++i) {
-    // Pawn match
-    if (toReturn.pawns[i].second == moveToTry.start) {
-      toReturn.pawns[i].second = moveToTry.end;
-    }
-
     // Another pawn got taken
     if (toReturn.pawns[i].second == moveToTry.end) {
       toReturn.pawns.erase(toReturn.pawns.begin() + i);
+    }
+
+    // Pawn match
+    if (toReturn.pawns[i].second == moveToTry.start) {
+      toReturn.pawns[i].second = moveToTry.end;
     }
     // I don't think this is actually necessary
     // } else if (toReturn.enPassantTarget.has_value()) {
@@ -161,62 +145,62 @@ const LumpedBoardAndGameState AI::tryMove(size_t index) const {
   }
   
   for (size_t i = 0; i < toReturn.knights.size(); ++i) {
-    // Knight match
-    if (toReturn.knights[i].second == moveToTry.start) {
-      toReturn.knights[i].second = moveToTry.end;
-    }
-
     // Another knight got taken
     if (toReturn.knights[i].second == moveToTry.end) {
       toReturn.knights.erase(toReturn.knights.begin() + i);
     }
+
+    // Knight match
+    if (toReturn.knights[i].second == moveToTry.start) {
+      toReturn.knights[i].second = moveToTry.end;
+    }
   }
 
   for (size_t i = 0; i < toReturn.bishops.size(); ++i) {
-    // Bishop match
-    if (toReturn.bishops[i].second == moveToTry.start) {
-      toReturn.bishops[i].second = moveToTry.end;
-    }
-
     // Another bishop got taken
     if (toReturn.bishops[i].second == moveToTry.end) {
       toReturn.bishops.erase(toReturn.bishops.begin() + i);
     }
+
+    // Bishop match
+    if (toReturn.bishops[i].second == moveToTry.start) {
+      toReturn.bishops[i].second = moveToTry.end;
+    }
   }
 
   for (size_t i = 0; i < toReturn.rooks.size(); ++i) {
-    // Rook match
-    if (toReturn.rooks[i].second == moveToTry.start) {
-      toReturn.rooks[i].second = moveToTry.end;
-    }
-
     // Another rook got taken
     if (toReturn.rooks[i].second == moveToTry.end) {
       toReturn.rooks.erase(toReturn.rooks.begin() + i);
     }
+
+    // Rook match
+    if (toReturn.rooks[i].second == moveToTry.start) {
+      toReturn.rooks[i].second = moveToTry.end;
+    }
   }
 
   for (size_t i = 0; i < toReturn.queens.size(); ++i) {
-    // Queen match
-    if (toReturn.queens[i].second == moveToTry.start) {
-      toReturn.queens[i].second = moveToTry.end;
-    }
-
     // Another queen got taken
     if (toReturn.queens[i].second == moveToTry.end) {
       toReturn.queens.erase(toReturn.queens.begin() + i);
     }
+
+    // Queen match
+    if (toReturn.queens[i].second == moveToTry.start) {
+      toReturn.queens[i].second = moveToTry.end;
+    }
   }
 
   for (size_t i = 0; i < toReturn.kings.size(); ++i) {
-    // King match
-    if (toReturn.kings[i].second == moveToTry.start) {
-      toReturn.kings[i].second = moveToTry.end;
-    }
-
     // ...should never happen?
     if (toReturn.kings[i].second == moveToTry.end) {
       toReturn.kings.erase(toReturn.kings.begin() + i);
+    }
+
+    // King match
+    if (toReturn.kings[i].second == moveToTry.start) {
+      toReturn.kings[i].second = moveToTry.end;
     }
   }
 

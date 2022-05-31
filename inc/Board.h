@@ -67,6 +67,10 @@ public:
     return m_allValidMoves;
   }
 
+  const std::vector<FullMove> getValidMovesFor(Color color) const;
+
+  void refreshValidMoves();
+
   const LumpedBoardAndGameState &
   getBoardAndGameState(Color color, size_t halfMoveNum = 0, size_t turnNum = 1);
 

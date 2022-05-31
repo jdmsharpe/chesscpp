@@ -27,6 +27,9 @@ public:
 
   inline std::vector<FullMove> getAllValidMoves() { return m_allValidMoves; }
   inline size_t getValidMoveSize() { return m_allValidMoves.size(); }
+  inline const FullMove &getValidMoveAt(const int index) {
+    return m_allValidMoves[index];
+  }
 
 private:
   // For now, hardcode

@@ -97,10 +97,6 @@ void Board::loadGame() {
 }
 
 void Board::loadFromState(const LumpedBoardAndGameState &state) {
-  for (size_t i = 0; i < m_pieces.size(); ++i) {
-    m_pieces[i].clear();
-  }
-
   m_pieces.clear();
   m_pieces.resize(2);
 
@@ -1121,16 +1117,7 @@ void Board::updateBoardState(const Position &start, const Position &end) {
   m_kingToHighlight.reset();
   m_pieceToHighlight.reset();
 
-  // Refresh valid moves
-  m_allValidMoves.clear();
-  for (auto &side : m_pieces) {
-    for (auto &piece : side) {
-      CONTINUE_IF_NULL(piece);
-      piece->clearValidMoves();
-    }
-  }
-
-  storeValidMoves();
+  refreshValidMoves();
 }
 
 bool Board::isInputValid(Color color, const std::queue<Position> &positions) {
@@ -1187,29 +1174,60 @@ void Board::highlightKingInCheck(Color color) {
   m_kingToHighlight = king->getPosition();
 }
 
+const std::vector<FullMove> Board::getValidMovesFor(Color color) const {
+  std::vector<FullMove> toReturn = {};
+  for (const auto &move : m_allValidMoves) {
+    toReturn.emplace_back(move);
+  }
+
+  auto checkForOpposingColor = [&color](const FullMove &input) {
+    return color != input.color;
+  };
+
+  // Don't need moves of opposing color
+  toReturn.erase(std::remove_copy_if(m_allValidMoves.cbegin(),
+                                     m_allValidMoves.cend(), toReturn.begin(),
+                                     checkForOpposingColor),
+                 toReturn.end());
+
+  return toReturn;
+}
+
+void Board::refreshValidMoves() {
+  m_allValidMoves.clear();
+  for (auto &side : m_pieces) {
+    for (auto &piece : side) {
+      CONTINUE_IF_NULL(piece);
+      piece->clearValidMoves();
+    }
+  }
+
+  storeValidMoves();
+}
+
 const LumpedBoardAndGameState &
 Board::getBoardAndGameState(Color color, size_t halfMoveNum, size_t turnNum) {
   m_boardAndGameState = {};
 
-  for (auto &side : m_pieces) {
-    for (auto &piece : side) {
-      auto *pieceToStore = piece.get();
+  for (const auto &side : m_pieces) {
+    for (const auto &piece : side) {
+      const auto *pieceToStore = piece.get();
       CONTINUE_IF_NULL(pieceToStore);
 
       const auto &color = pieceToStore->getColor();
       const auto &position = pieceToStore->getPosition();
 
-      if (dynamic_cast<Pawn *>(pieceToStore)) {
+      if (dynamic_cast<const Pawn *>(pieceToStore)) {
         m_boardAndGameState.pawns.emplace_back(color, position);
-      } else if (dynamic_cast<Knight *>(pieceToStore)) {
+      } else if (dynamic_cast<const Knight *>(pieceToStore)) {
         m_boardAndGameState.knights.emplace_back(color, position);
-      } else if (dynamic_cast<Bishop *>(pieceToStore)) {
+      } else if (dynamic_cast<const Bishop *>(pieceToStore)) {
         m_boardAndGameState.bishops.emplace_back(color, position);
-      } else if (dynamic_cast<Rook *>(pieceToStore)) {
+      } else if (dynamic_cast<const Rook *>(pieceToStore)) {
         m_boardAndGameState.rooks.emplace_back(color, position);
-      } else if (dynamic_cast<Queen *>(pieceToStore)) {
+      } else if (dynamic_cast<const Queen *>(pieceToStore)) {
         m_boardAndGameState.queens.emplace_back(color, position);
-      } else if (dynamic_cast<King *>(pieceToStore)) {
+      } else if (dynamic_cast<const King *>(pieceToStore)) {
         m_boardAndGameState.kings.emplace_back(color, position);
       }
     }
