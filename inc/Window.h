@@ -36,9 +36,12 @@ public:
 private:
   void stepSdlGame();
   void stepLegacyGame();
-  
+
   bool makePlayerMove();
   bool makeComputerMove();
+
+  std::pair<FullMove, double> minimaxRoot(Color maximizer, int depth);
+  double minimax(Color maximizer, int depth, double alpha, double beta);
 
   Board m_board;
   Game m_game;

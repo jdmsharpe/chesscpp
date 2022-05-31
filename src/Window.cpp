@@ -14,6 +14,10 @@ Position convertMouseInputToPosition(const int x, const int y) {
   return {x / k_squareWidth, std::abs((y / k_squareWidth))};
 }
 
+Color getOtherColor(Color color) {
+  return (color == Color::white) ? Color::black : Color::white;
+}
+
 } // namespace
 
 Window::Window(const bool isLegacyMode)
@@ -222,9 +226,8 @@ void Window::endGame() {
 
 bool Window::makePlayerMove() {
   // Ensures valid moves are populated on first turn
-  // Little hacky but I think it's okay
   if (m_game.whatTurnIsIt() <= 1) {
-    m_board.updateBoardState({}, {});
+    m_board.refreshValidMoves();
   }
 
   // Standard mode uses SDL for graphics
@@ -281,45 +284,20 @@ bool Window::makeComputerMove() {
   // TODO: Has a bug where computer's king doesn't highlight when in check
   // std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
-  const auto &currentState = m_board.getBoardAndGameState(
+  if (!m_computer.getColor().has_value()) {
+    return false;
+  }
+
+  const auto currentState = m_board.getBoardAndGameState(
       m_game.whoseTurnIsIt(), m_game.getHalfMoveCount(), m_game.whatTurnIsIt());
+
+  const auto &computerColor = m_computer.getColor().value();
   m_computer.setBoardAndGameState(currentState);
 
-  m_computer.setAvailableMoves(m_board.getAllValidMoves());
+  m_computer.setAvailableMoves(m_board.getValidMovesFor(computerColor));
   m_computer.updateAdvantage();
 
-  std::pair<FullMove, double> bestMove = {m_computer.getAllValidMoves()[0],
-                                          0.0};
-  const auto &moveToTry = m_computer.getRandomMove();
-  bestMove.first.start = moveToTry.first;
-  bestMove.first.end = moveToTry.second;
-
-  for (size_t i = 0; i < m_computer.getValidMoveSize(); ++i) {
-    double moveAdvantage = 0.0;
-    m_board.loadFromState(m_computer.tryMove(i));
-    moveAdvantage = m_computer.calculateAdvantage(m_board.getBoardAndGameState(
-        m_computer.getColor().value(), m_game.getHalfMoveCount(),
-        m_game.getMoveCount()));
-
-    // Check if move leads to checkmate
-    if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {
-      moveAdvantage += (m_computer.getColor() == Color::white)
-                           ? k_checkmateValue
-                           : -k_checkmateValue;
-    }
-
-    if (m_computer.getColor() == Color::white) {
-      if (moveAdvantage >= bestMove.second) {
-        bestMove.first = m_computer.getAllValidMoves()[i];
-        bestMove.second = moveAdvantage;
-      }
-    } else {
-      if (moveAdvantage <= bestMove.second) {
-        bestMove.first = m_computer.getAllValidMoves()[i];
-        bestMove.second = moveAdvantage;
-      }
-    }
-  }
+  const auto bestMove = minimaxRoot(computerColor, 2);
 
   std::cout << "The best move advantage was: " << bestMove.second << std::endl;
   std::cout << "The move was from: " << bestMove.first.start.first << " "
@@ -329,12 +307,14 @@ bool Window::makeComputerMove() {
 
   // Reset board
   m_board.loadFromState(currentState);
+  m_board.refreshValidMoves();
+  m_computer.setBoardAndGameState(currentState);
+  m_computer.updateAdvantage();
 
   const auto &move = bestMove.first;
   // This call is enforced because the function is responsible for the move in
   // some cases
-  if (m_board.isValidMove(m_game.whoseTurnIsIt(), move.start, move.end,
-                          false)) {
+  if (m_board.isValidMove(computerColor, move.start, move.end, false)) {
     m_board.movePiece(move.start, move.end);
     m_board.updateBoardState(move.start, move.end);
 
@@ -342,4 +322,116 @@ bool Window::makeComputerMove() {
   }
 
   return false;
+}
+
+std::pair<FullMove, double> Window::minimaxRoot(Color color, int depth) {
+  std::pair<FullMove, double> bestMove = {{}, 9999};
+
+  size_t startingSize = m_computer.getValidMoveSize();
+  const auto startingMoves = m_board.getValidMovesFor(color);
+  const auto startingState = m_board.getBoardAndGameState(
+      color, m_game.getHalfMoveCount(), m_game.getMoveCount());
+
+  for (size_t i = 0; i < startingSize; ++i) {
+    m_board.loadFromState(startingState);
+    m_board.refreshValidMoves();
+    m_computer.setBoardAndGameState(startingState);
+    m_computer.setAvailableMoves(startingMoves);
+
+    m_board.loadFromState(m_computer.tryMove(i));
+    const auto minimaxResult =
+        minimax(getOtherColor(color), depth - 1, -10000.0, 10000.0);
+
+    std::cout << "Result of move was an advantage of: " << minimaxResult
+              << std::endl;
+
+    if (minimaxResult <= bestMove.second) {
+      m_computer.setAvailableMoves(startingMoves);
+      bestMove.first = m_computer.getValidMoveAt(i);
+      bestMove.second = minimaxResult;
+    }
+  }
+
+  return bestMove;
+}
+
+double Window::minimax(Color color, int depth, double alpha, double beta) {
+  const auto startingMoves = m_board.getValidMovesFor(color);
+  const auto startingState = m_board.getBoardAndGameState(
+      m_game.whoseTurnIsIt(), m_game.getHalfMoveCount(), m_game.getMoveCount());
+
+  if (depth <= 0) {
+    return m_computer.calculateAdvantage(startingState);
+  }
+
+  double bestAdvantage = 0.0;
+
+  if (color == m_computer.getColor().value()) {
+    bestAdvantage = 9999.;
+
+    for (size_t i = 0; i < startingMoves.size(); ++i) {
+      m_board.loadFromState(startingState);
+      m_board.refreshValidMoves();
+      m_computer.setBoardAndGameState(startingState);
+      m_computer.setAvailableMoves(startingMoves);
+
+      m_board.loadFromState(m_computer.tryMove(i));
+      bestAdvantage = minimax(Color::black, depth - 1, alpha, beta);
+      beta = std::fmin(beta, bestAdvantage);
+      if (beta <= alpha) {
+        return bestAdvantage;
+      }
+    }
+  } else {
+    bestAdvantage = -9999.;
+
+    for (size_t i = 0; i < startingMoves.size(); ++i) {
+      m_board.loadFromState(startingState);
+      m_board.refreshValidMoves();
+      m_computer.setBoardAndGameState(startingState);
+      m_computer.setAvailableMoves(startingMoves);
+
+      m_board.loadFromState(m_computer.tryMove(i));
+      bestAdvantage = minimax(Color::black, depth - 1, alpha, beta);
+      alpha = std::fmax(alpha, bestAdvantage);
+      if (beta <= alpha) {
+        return bestAdvantage;
+      }
+    }
+  }
+
+  // std::pair<FullMove, double> bestMove = {{}, -9999.9};
+  // const auto &moveToTry = m_computer.getRandomMove();
+  // bestMove.first.start = moveToTry.first;
+  // bestMove.first.end = moveToTry.second;
+
+  // for (size_t i = 0; i < m_computer.getValidMoveSize(); ++i) {
+  //   double moveAdvantage = 0.0;
+  //   m_board.loadFromState(m_computer.tryMove(i));
+  //   moveAdvantage =
+  //   m_computer.calculateAdvantage(m_board.getBoardAndGameState(
+  //       m_computer.getColor().value(), m_game.getHalfMoveCount(),
+  //       m_game.getMoveCount()));
+
+  // // Check if move leads to checkmate
+  // if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {
+  //   moveAdvantage += (m_computer.getColor() == Color::white)
+  //                        ? k_checkmateValue
+  //                        : -k_checkmateValue;
+  // }
+
+  //   if (m_computer.getColor() == Color::white) {
+  //     if (moveAdvantage >= bestMove.second) {
+  //       bestMove.first = m_computer.getAllValidMoves()[i];
+  //       bestMove.second = moveAdvantage;
+  //     }
+  //   } else {
+  //     if (moveAdvantage <= bestMove.second) {
+  //       bestMove.first = m_computer.getAllValidMoves()[i];
+  //       bestMove.second = moveAdvantage;
+  //     }
+  //   }
+  // }
+
+  return bestAdvantage;
 }

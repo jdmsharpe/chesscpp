@@ -34,6 +34,14 @@ constexpr int k_squareHeight = k_windowHeight / 8;
 constexpr int k_totalPieces = 32;
 constexpr int k_numCastleOptions = 4;
 
+// For preallocating vectors
+constexpr int k_maxPawnsPossible = 8;
+constexpr int k_maxKnightsPossible = 10;
+constexpr int k_maxBishopsPossible = 10;
+constexpr int k_maxRooksPossible = 10;
+constexpr int k_maxQueensPossible = 9;
+constexpr int k_maxKingsPossible = 1;
+
 enum class Color { black, white };
 enum class PieceType { none, pawn, knight, bishop, rook, queen, king };
 enum class CastleSide { kingside, queenside };
@@ -64,6 +72,20 @@ struct LumpedBoardAndGameState {
   Color whoseTurn;
   size_t halfMoveNum;
   size_t turnNum;
+
+  // Default ctor assumes start of game
+  LumpedBoardAndGameState()
+      : whoseTurn(Color::white), halfMoveNum(0), turnNum(1) {
+    pawns.reserve(k_maxPawnsPossible);
+    knights.reserve(k_maxKnightsPossible);
+    bishops.reserve(k_maxBishopsPossible);
+    rooks.reserve(k_maxRooksPossible);
+    queens.reserve(k_maxQueensPossible);
+    kings.reserve(k_maxKingsPossible);
+
+    castleStatus.set();
+    enPassantTarget.reset();
+  }
 };
 
 // Variables for indexing castle status
