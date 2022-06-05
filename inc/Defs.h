@@ -32,6 +32,7 @@ constexpr int k_squareHeight = k_windowHeight / 8;
 
 // Chess definitions
 constexpr int k_totalPieces = 32;
+constexpr int k_totalSquares = 64;
 constexpr int k_numCastleOptions = 4;
 
 // For preallocating vectors
@@ -41,6 +42,12 @@ constexpr int k_maxBishopsPossible = 10;
 constexpr int k_maxRooksPossible = 10;
 constexpr int k_maxQueensPossible = 9;
 constexpr int k_maxKingsPossible = 1;
+
+// For indexing castle status
+constexpr int k_blackKingsideIndex = 0;
+constexpr int k_blackQueensideIndex = 1;
+constexpr int k_whiteKingsideIndex = 2;
+constexpr int k_whiteQueensideIndex = 3;
 
 enum class Color { black, white };
 enum class PieceType { none, pawn, knight, bishop, rook, queen, king };
@@ -54,7 +61,7 @@ using CastleStatus = std::bitset<k_numCastleOptions>;
 
 // Representation of the entirety of both board and game states.
 struct LumpedBoardAndGameState {
-  // Board states
+  // Board state
   PieceContainer pawns;
   PieceContainer knights;
   PieceContainer bishops;
@@ -68,7 +75,7 @@ struct LumpedBoardAndGameState {
   CastleStatus castleStatus;
   std::optional<Position> enPassantTarget;
 
-  // Game states
+  // Game state
   Color whoseTurn;
   size_t halfMoveNum;
   size_t turnNum;
@@ -87,12 +94,6 @@ struct LumpedBoardAndGameState {
     enPassantTarget.reset();
   }
 };
-
-// Variables for indexing castle status
-constexpr int k_blackKingsideIndex = 0;
-constexpr int k_blackQueensideIndex = 1;
-constexpr int k_whiteKingsideIndex = 2;
-constexpr int k_whiteQueensideIndex = 3;
 
 // A full move in this case contains all possible information about a
 // potential move: the color, piece type, and starting and ending positions

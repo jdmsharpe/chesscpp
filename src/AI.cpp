@@ -6,6 +6,87 @@
 
 namespace {
 
+constexpr int k_minimaxDepth = 1;
+
+constexpr int k_pawnValue = 10;
+constexpr int k_knightValue = 30;
+constexpr int k_bishopValue = 30;
+constexpr int k_rookValue = 50;
+constexpr int k_queenValue = 90;
+constexpr int k_kingValue = 900;
+
+constexpr int k_maxSquareIndex = 7;
+
+// Credits to https://www.chessprogramming.org/Simplified_Evaluation_Function
+using EvalTable = int[k_totalSquares / 8][k_totalSquares / 8];
+constexpr EvalTable k_pawnEvalTable = {
+    {0,  0,  0,   0,   0,   0,   0,  0},
+    {5,  10, 10,  -20, -20, 10,  10, 5},
+    {5,  -5, -10, 0,   0,  -10, -5,  5},
+    {0,  0,  0,   20,   20,  0,  0,  0},
+    {5,  5,  10,  25,  25,  10,  5,  5},
+    {10, 10, 20,  30,  30,  20,  10, 10},
+    {50, 50, 50,  50,  50,  50,  50, 50},
+    {0,  0,  0,   0,   0,   0,   0,  0}
+};
+
+constexpr EvalTable k_knightEvalTable = {
+    {-50, -40, -30, -30, -30, -30, -40, -50},
+    {-40, -20, 0,   5,   5,   0,   -20, -40},
+    {-30, 5,   10,  15,  15,  10,  5,   -30},
+    {-30, 0,   15,  20,  20,  15,  0,   -30},
+    {-30, 5,   15,  20,  20,  15,  5,   -30},
+    {-30, 0,   10,  15,  15,  10,  0,   -30},
+    {-40, -20, 0,   0,   0,   0,   -20, -40},
+    {-50, -40, -30, -30, -30, -30, -40, -50}
+};
+
+constexpr EvalTable k_bishopEvalTable = {
+    {-20, -10, -10, -10, -10, -10, -10, -20},
+    {-10, 5,   0,   0,   0,   0,   5,   -10},
+    {-10, 10,  10,  10,  10,  10,  10,  -10},
+    {-10, 0,   10,  10,  10,  10,  0,   -10},
+    {-10, 5,   5,   10,  10,  5,   5,   -10},
+    {-10, 0,   5,   10,  10,  5,   0,   -10},
+    {-10, 0,   0,   0,   0,   0,   0,   -10},
+    {-20, -10, -10, -10, -10, -10, -10, -20}
+};
+
+constexpr EvalTable k_rookEvalTable = {
+    {0,  0,  0,  5,  5,  0,  0,  0},
+    {-5, 0,  0,  0,  0,  0,  0,  -5},
+    {-5, 0,  0,  0,  0,  0,  0,  -5},
+    {-5, 0,  0,  0,  0,  0,  0,  -5},
+    {-5, 0,  0,  0,  0,  0,  0,  -5},
+    {-5, 0,  0,  0,  0,  0,  0,  -5},
+    {5,  10, 10, 10, 10, 10, 10, 5},
+    {0,  0,  0,  0,  0,  0,  0,  0}
+};
+
+// Changed this one a bit from the original
+// to make it more symmetrical
+constexpr EvalTable k_queenEvalTable = {
+    {-20, -10, -10, -5, -5, -10, -10, -20},
+    {-10, 0,   0,   0,  0,  0,   0,   -10},
+    {-10, 0,   5,   5,  5,  5,   0,   -10},
+    {-5,  0,   5,   5,  5,  5,   0,   -5},
+    {-5,  0,   5,   5,  5,  5,   0,   -5},
+    {-10, 0,   5,   5,  5,  5,   0,   -10},
+    {-10, 0,   0,   0,  0,  0,   0,   -10},
+    {-20, -10, -10, -5, -5, -10, -10, -20}
+};
+
+constexpr EvalTable k_kingEvalTable = {
+    {20,  30,  10,  0,   0,   10,  30,  20},
+    {20,  20,  0,   0,   0,   0,   20,  20},
+    {-10, -20, -20, -20, -20, -20, -20, -10},
+    {-20, -30, -30, -40, -40, -30, -30, -20},
+    {-30, -40, -40, -50, -50, -40, -40, -30},
+    {-30, -40, -40, -50, -50, -40, -40, -30},
+    {-30, -40, -40, -50, -50, -40, -40, -30},
+    {-30, -40, -40, -50, -50, -40, -40, -30}
+};
+
 // Credits to first answer:
 // https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
 template <typename it, typename RandomGenerator>
@@ -21,188 +102,145 @@ template <typename it> it selectRandomly(it start, it end) {
   return selectRandomly(start, end, gen);
 }
 
-constexpr int k_pawnValue = 10;
-constexpr int k_knightValue = 30;
-constexpr int k_bishopValue = 30;
-constexpr int k_rookValue = 50;
-constexpr int k_queenValue = 90;
-constexpr int k_kingValue = 900;
+Color getOtherColor(Color color) {
+  return (color == Color::white) ? Color::black : Color::white;
+}
+
+auto addToAdvantage = [](const PieceContainer &container, int pieceValue,
+                         const EvalTable &evalTable) {
+  int advantage = 0;
+  for (size_t i = 0; i < container.size(); ++i) {
+    const auto &piece = container[i];
+    if (piece.second.first < 0 || piece.second.second < 0) {
+      // Piece has been removed
+      continue;
+    }
+
+    // Add raw piece value
+    advantage += (piece.first == Color::white) ? pieceValue : -pieceValue;
+
+    // Add evaluation table index for piece position
+    // Evaluation tables are structured for white, so flip the table
+    // vertically for black
+    advantage += (piece.first == Color::white)
+                     ? evalTable[piece.second.first][piece.second.second]
+                     : -evalTable[piece.second.first]
+                                 [k_maxSquareIndex - piece.second.second];
+  }
+
+  return advantage;
+};
 
 } // namespace
 
 void AI::reset() {
   m_color = Color::black;
-
-  m_allValidMoves.clear();
-  m_selectedMove = {};
-
-  m_advantage = 0.0;
 }
 
-void AI::setAvailableMoves(const std::vector<FullMove> &validMoves) {
-  // Should always reset before copying
-  m_allValidMoves.clear();
+int AI::getAdvantage() {
+  const auto &currentState = m_board.getBoardAndGameState(m_color.value());
 
-  // For some reason, std::copy gives me weird template errors here
-  for (const auto &move : validMoves) {
-    m_allValidMoves.emplace_back(move);
-  }
-}
+  int advantage = 0;
 
-void AI::updateAdvantage() {
-  const auto &currentState =
-      m_boardAndGameStates[m_boardAndGameStates.size() - 1];
-
-  for (size_t i = 0; i < currentState.pawns.size(); ++i) {
-    m_advantage += (currentState.pawns[i].first == Color::white) ? k_pawnValue
-                                                                 : -k_pawnValue;
-  }
-  for (size_t i = 0; i < currentState.knights.size(); ++i) {
-    m_advantage += (currentState.knights[i].first == Color::white)
-                       ? k_knightValue
-                       : -k_knightValue;
-  }
-  for (size_t i = 0; i < currentState.bishops.size(); ++i) {
-    m_advantage += (currentState.bishops[i].first == Color::white)
-                       ? k_bishopValue
-                       : -k_bishopValue;
-  }
-  for (size_t i = 0; i < currentState.rooks.size(); ++i) {
-    m_advantage += (currentState.rooks[i].first == Color::white) ? k_rookValue
-                                                                 : -k_rookValue;
-  }
-  for (size_t i = 0; i < currentState.queens.size(); ++i) {
-    m_advantage += (currentState.queens[i].first == Color::white)
-                       ? k_queenValue
-                       : -k_queenValue;
-  }
-  for (size_t i = 0; i < currentState.kings.size(); ++i) {
-    m_advantage += (currentState.kings[i].first == Color::white) ? k_kingValue
-                                                                 : -k_kingValue;
-  }
-}
-
-double AI::calculateAdvantage(const LumpedBoardAndGameState &state) {
-  double advantage = 0.0;
-
-  for (size_t i = 0; i < state.pawns.size(); ++i) {
-    advantage +=
-        (state.pawns[i].first == Color::white) ? k_pawnValue : -k_pawnValue;
-  }
-  for (size_t i = 0; i < state.knights.size(); ++i) {
-    advantage += (state.knights[i].first == Color::white) ? k_knightValue
-                                                          : -k_knightValue;
-  }
-  for (size_t i = 0; i < state.bishops.size(); ++i) {
-    advantage += (state.bishops[i].first == Color::white) ? k_bishopValue
-                                                          : -k_bishopValue;
-  }
-  for (size_t i = 0; i < state.rooks.size(); ++i) {
-    advantage +=
-        (state.rooks[i].first == Color::white) ? k_rookValue : -k_rookValue;
-  }
-  for (size_t i = 0; i < state.queens.size(); ++i) {
-    advantage +=
-        (state.queens[i].first == Color::white) ? k_queenValue : -k_queenValue;
-  }
-  for (size_t i = 0; i < state.kings.size(); ++i) {
-    advantage +=
-        (state.kings[i].first == Color::white) ? k_kingValue : -k_kingValue;
-  }
+  advantage += addToAdvantage(currentState.pawns, k_pawnValue, k_pawnEvalTable);
+  advantage +=
+      addToAdvantage(currentState.knights, k_knightValue, k_knightEvalTable);
+  advantage +=
+      addToAdvantage(currentState.bishops, k_bishopValue, k_bishopEvalTable);
+  advantage += addToAdvantage(currentState.rooks, k_rookValue, k_rookEvalTable);
+  advantage +=
+      addToAdvantage(currentState.queens, k_queenValue, k_queenEvalTable);
+  advantage += addToAdvantage(currentState.kings, k_kingValue, k_kingEvalTable);
 
   return advantage;
 }
 
 std::pair<Position, Position> AI::getRandomMove() {
-  auto result =
-      selectRandomly(m_allValidMoves.cbegin(), m_allValidMoves.cend());
-  m_selectedMove = {result->start, result->end};
-  return m_selectedMove;
+  const auto &moves = m_board.getValidMovesFor(m_color.value());
+  auto result = selectRandomly(moves.cbegin(), moves.cend());
+  return {result->start, result->end};
 }
 
-const LumpedBoardAndGameState AI::tryMove(size_t index) const {
-  LumpedBoardAndGameState toReturn =
-      m_boardAndGameStates[static_cast<int>(m_boardAndGameStates.size() - 1)];
+std::pair<Position, Position> AI::minimaxRoot(Color max) {
+  std::pair<Position, Position> bestMove;
+  int bestAdvantage = -9999;
+  const auto &startingMoves = m_board.getValidMovesFor(max);
 
-  const auto &moveToTry = m_allValidMoves[index];
+  for (size_t i = 0; i < startingMoves.size(); ++i) {
+    const auto &moveToMake = startingMoves[i];
+    m_board.testMove(moveToMake.start, moveToMake.end, k_minimaxDepth);
+    int advantage = -minimax(getOtherColor(max), k_minimaxDepth - 1, -10000, 10000);
+    m_board.undoMove(moveToMake.start, moveToMake.end, k_minimaxDepth);
 
-  for (size_t i = 0; i < toReturn.pawns.size(); ++i) {
-    // Another pawn got taken
-    if (toReturn.pawns[i].second == moveToTry.end) {
-      toReturn.pawns.erase(toReturn.pawns.begin() + i);
-    }
-
-    // Pawn match
-    if (toReturn.pawns[i].second == moveToTry.start) {
-      toReturn.pawns[i].second = moveToTry.end;
-    }
-    // I don't think this is actually necessary
-    // } else if (toReturn.enPassantTarget.has_value()) {
-    //   if (toReturn.enPassantTarget.value() == moveToTry.end) {
-    //     toReturn.pawns.erase(toReturn.pawns.begin() + i);
-    //   }
-    // }
-  }
-  
-  for (size_t i = 0; i < toReturn.knights.size(); ++i) {
-    // Another knight got taken
-    if (toReturn.knights[i].second == moveToTry.end) {
-      toReturn.knights.erase(toReturn.knights.begin() + i);
-    }
-
-    // Knight match
-    if (toReturn.knights[i].second == moveToTry.start) {
-      toReturn.knights[i].second = moveToTry.end;
+    if (advantage >= bestAdvantage) {
+      bestAdvantage = advantage;
+      bestMove = std::make_pair(startingMoves[i].start, startingMoves[i].end);
     }
   }
 
-  for (size_t i = 0; i < toReturn.bishops.size(); ++i) {
-    // Another bishop got taken
-    if (toReturn.bishops[i].second == moveToTry.end) {
-      toReturn.bishops.erase(toReturn.bishops.begin() + i);
+  if (k_verbose) {
+    std::cout << "The best move advantage was: " << bestMove.first.second
+              << std::endl;
+  }
+
+  return bestMove;
+}
+
+int AI::minimax(Color max, int depth, int alpha, int beta) {
+  if (depth == 0) {
+    return getAdvantage();
+  }
+
+  m_board.refreshValidMoves();
+  const auto &moves = m_board.getValidMovesFor(max);
+  int bestAdvantage = 0;
+
+  if (max == m_color.value()) {
+    if (moves.size() == 0) {
+      if (m_board.isKingInCheck(max)) {
+        return -9999;
+        std::cout << "ouch" << std::endl;
+      }
+
+      return 0;
     }
 
-    // Bishop match
-    if (toReturn.bishops[i].second == moveToTry.start) {
-      toReturn.bishops[i].second = moveToTry.end;
+    bestAdvantage = -9999;
+
+    for (size_t i = 0; i < moves.size(); ++i) {
+      const auto &moveToMake = moves[i];
+      m_board.testMove(moveToMake.start, moveToMake.end, depth);
+      bestAdvantage = -minimax(getOtherColor(max), depth - 1, alpha, beta);
+      m_board.undoMove(moveToMake.start, moveToMake.end, depth);
+      alpha = std::max(alpha, bestAdvantage);
+      if (beta <= alpha) {
+        return bestAdvantage;
+      }
+    }
+
+  } else {
+    if (moves.size() == 0) {
+      if (m_board.isKingInCheck(max)) {
+        return 9999;
+        std::cout << "ouch" << std::endl;
+      }
+
+      return 0;
+    }
+
+    bestAdvantage = 9999;
+
+    for (size_t i = 0; i < moves.size(); ++i) {
+      const auto &moveToMake = moves[i];
+      m_board.testMove(moveToMake.start, moveToMake.end, depth);
+      bestAdvantage = -minimax(getOtherColor(max), depth - 1, alpha, beta);
+      m_board.undoMove(moveToMake.start, moveToMake.end, depth);
+      beta = std::min(beta, bestAdvantage);
+      if (beta <= alpha) {
+        return bestAdvantage;
+      }
     }
   }
 
-  for (size_t i = 0; i < toReturn.rooks.size(); ++i) {
-    // Another rook got taken
-    if (toReturn.rooks[i].second == moveToTry.end) {
-      toReturn.rooks.erase(toReturn.rooks.begin() + i);
-    }
-
-    // Rook match
-    if (toReturn.rooks[i].second == moveToTry.start) {
-      toReturn.rooks[i].second = moveToTry.end;
-    }
-  }
-
-  for (size_t i = 0; i < toReturn.queens.size(); ++i) {
-    // Another queen got taken
-    if (toReturn.queens[i].second == moveToTry.end) {
-      toReturn.queens.erase(toReturn.queens.begin() + i);
-    }
-
-    // Queen match
-    if (toReturn.queens[i].second == moveToTry.start) {
-      toReturn.queens[i].second = moveToTry.end;
-    }
-  }
-
-  for (size_t i = 0; i < toReturn.kings.size(); ++i) {
-    // ...should never happen?
-    if (toReturn.kings[i].second == moveToTry.end) {
-      toReturn.kings.erase(toReturn.kings.begin() + i);
-    }
-
-    // King match
-    if (toReturn.kings[i].second == moveToTry.start) {
-      toReturn.kings[i].second = moveToTry.end;
-    }
-  }
-
-  return toReturn;
+  return bestAdvantage;
 }

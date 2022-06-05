@@ -40,9 +40,6 @@ private:
   bool makePlayerMove();
   bool makeComputerMove();
 
-  std::pair<FullMove, double> minimaxRoot(Color maximizer, int depth);
-  double minimax(Color maximizer, int depth, double alpha, double beta);
-
   Board m_board;
   Game m_game;
   AI m_computer;

@@ -68,6 +68,10 @@ int Application::run() {
           break;
         case SDL_KEYDOWN:
           m_window->handleKeyboardInput(e.key);
+          // TODO: Come up with a better way to do this
+          if (e.key.keysym.sym == SDLK_r) {
+            m_appState = AppState::GAME_IN_PROGRESS;
+          }
           break;
         }
       }
@@ -75,8 +79,6 @@ int Application::run() {
 
     switch (m_appState) {
     case AppState::GAME_IN_PROGRESS:
-      // For timing and later optimization
-
       m_window->stepGame();
 
       if (!m_window->isGameInProgress()) {

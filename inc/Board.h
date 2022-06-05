@@ -63,6 +63,10 @@ public:
     m_pieceToHighlight.reset();
   }
 
+  inline void clearOldKingHighlight() {
+    m_kingToHighlight.reset();
+  }
+
   inline const std::vector<FullMove> &getAllValidMoves() const {
     return m_allValidMoves;
   }
@@ -73,6 +77,9 @@ public:
 
   const LumpedBoardAndGameState &
   getBoardAndGameState(Color color, size_t halfMoveNum = 0, size_t turnNum = 1);
+
+  void testMove(const Position &start, const Position &end, int depth);
+  void undoMove(const Position &start, const Position &end, int depth);
 
 private:
   void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor);
