@@ -21,7 +21,7 @@ public:
 
   inline void clearValidMoves() { m_validMoves.clear(); }
 
-  inline const std::vector<Position> &getValidMoves() { return m_validMoves; }
+  inline const std::vector<Position> &getValidMoves() const { return m_validMoves; }
 
   inline Position getPosition() const { return m_position; }
 
