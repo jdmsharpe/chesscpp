@@ -599,15 +599,15 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
   // Should be a way to refactor/combine these...
   for (int i = 0; i < 8; ++i) {
     positionToCheck = {position.first, i};
-    auto *potentialAttackerX = getPieceAt(positionToCheck);
+    const auto *potentialAttackerX = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerX);
 
     // Don't check own position
     CONTINUE_IF_VALID(position == positionToCheck);
 
-    if (dynamic_cast<Rook *>(potentialAttackerX) ||
-        dynamic_cast<Queen *>(potentialAttackerX)) {
+    if (dynamic_cast<const Rook *>(potentialAttackerX) ||
+        dynamic_cast<const Queen *>(potentialAttackerX)) {
       // Don't count own pieces
       CONTINUE_IF_VALID(potentialAttackerX->getColor() == color);
 
@@ -619,14 +619,14 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
 
   for (int i = 0; i < 8; ++i) {
     positionToCheck = {i, position.second};
-    auto *potentialAttackerY = getPieceAt(positionToCheck);
+    const auto *potentialAttackerY = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerY);
 
     CONTINUE_IF_VALID(position == positionToCheck);
 
-    if (dynamic_cast<Rook *>(potentialAttackerY) ||
-        dynamic_cast<Queen *>(potentialAttackerY)) {
+    if (dynamic_cast<const Rook *>(potentialAttackerY) ||
+        dynamic_cast<const Queen *>(potentialAttackerY)) {
       CONTINUE_IF_VALID(potentialAttackerY->getColor() == color);
 
       if (!isPieceBlockingRook(potentialAttackerY->getPosition(), position)) {
@@ -643,15 +643,15 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
     }
     positionToCheck = {position.first + i, position.second + i};
 
-    auto *potentialAttackerNortheast = getPieceAt(positionToCheck);
+    const auto *potentialAttackerNortheast = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerNortheast);
 
     CONTINUE_IF_VALID(potentialAttackerNortheast->getColor() == color);
     CONTINUE_IF_VALID(position == positionToCheck);
 
-    if (dynamic_cast<Bishop *>(potentialAttackerNortheast) ||
-        dynamic_cast<Queen *>(potentialAttackerNortheast)) {
+    if (dynamic_cast<const Bishop *>(potentialAttackerNortheast) ||
+        dynamic_cast<const Queen *>(potentialAttackerNortheast)) {
       if (!isPieceBlockingBishop(potentialAttackerNortheast->getPosition(),
                                  position)) {
         { return true; }
@@ -665,15 +665,15 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
     }
     positionToCheck = {position.first - i, position.second + i};
 
-    auto *potentialAttackerNorthwest = getPieceAt(positionToCheck);
+    const auto *potentialAttackerNorthwest = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerNorthwest);
 
     CONTINUE_IF_VALID(potentialAttackerNorthwest->getColor() == color);
     CONTINUE_IF_VALID(position == positionToCheck);
 
-    if (dynamic_cast<Bishop *>(potentialAttackerNorthwest) ||
-        dynamic_cast<Queen *>(potentialAttackerNorthwest)) {
+    if (dynamic_cast<const Bishop *>(potentialAttackerNorthwest) ||
+        dynamic_cast<const Queen *>(potentialAttackerNorthwest)) {
       if (!isPieceBlockingBishop(potentialAttackerNorthwest->getPosition(),
                                  position)) {
         { return true; }
@@ -687,15 +687,15 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
     }
     positionToCheck = {position.first + i, position.second - i};
 
-    auto *potentialAttackerSoutheast = getPieceAt(positionToCheck);
+    const auto *potentialAttackerSoutheast = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerSoutheast);
 
     CONTINUE_IF_VALID(potentialAttackerSoutheast->getColor() == color);
     CONTINUE_IF_VALID(position == positionToCheck);
 
-    if (dynamic_cast<Bishop *>(potentialAttackerSoutheast) ||
-        dynamic_cast<Queen *>(potentialAttackerSoutheast)) {
+    if (dynamic_cast<const Bishop *>(potentialAttackerSoutheast) ||
+        dynamic_cast<const Queen *>(potentialAttackerSoutheast)) {
       if (!isPieceBlockingBishop(potentialAttackerSoutheast->getPosition(),
                                  position)) {
         { return true; }
@@ -709,15 +709,15 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
     }
     positionToCheck = {position.first - i, position.second - i};
 
-    auto *potentialAttackerSouthwest = getPieceAt(positionToCheck);
+    const auto *potentialAttackerSouthwest = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialAttackerSouthwest);
 
     CONTINUE_IF_VALID(potentialAttackerSouthwest->getColor() == color);
     CONTINUE_IF_VALID(position == positionToCheck);
 
-    if (dynamic_cast<Bishop *>(potentialAttackerSouthwest) ||
-        dynamic_cast<Queen *>(potentialAttackerSouthwest)) {
+    if (dynamic_cast<const Bishop *>(potentialAttackerSouthwest) ||
+        dynamic_cast<const Queen *>(potentialAttackerSouthwest)) {
       if (!isPieceBlockingBishop(potentialAttackerSouthwest->getPosition(),
                                  position)) {
         { return true; }
@@ -730,13 +730,13 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
     positionToCheck = {position.first + k_potentialKnightPositions[i].first,
                        position.second + k_potentialKnightPositions[i].second};
 
-    auto *potentialKnightAttacker = getPieceAt(positionToCheck);
+    const auto *potentialKnightAttacker = getPieceAt(positionToCheck);
 
     CONTINUE_IF_NULL(potentialKnightAttacker);
 
     CONTINUE_IF_VALID(potentialKnightAttacker->getColor() == color);
 
-    if (dynamic_cast<Knight *>(potentialKnightAttacker)) {
+    if (dynamic_cast<const Knight *>(potentialKnightAttacker)) {
       return true;
     }
   }
@@ -745,14 +745,14 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
   {
     int sign = (color == Color::white) ? 1 : -1;
 
-    auto *potentialAttackerRight =
+    const auto *potentialAttackerRight =
         getPieceAt({position.first + 1, position.second + sign});
-    auto *potentialAttackerLeft =
+    const auto *potentialAttackerLeft =
         getPieceAt({position.first - 1, position.second + sign});
 
-    if ((dynamic_cast<Pawn *>(potentialAttackerRight) &&
+    if ((dynamic_cast<const Pawn *>(potentialAttackerRight) &&
          (potentialAttackerRight->getColor() != color)) ||
-        (dynamic_cast<Pawn *>(potentialAttackerLeft) &&
+        (dynamic_cast<const Pawn *>(potentialAttackerLeft) &&
          (potentialAttackerLeft->getColor() != color))) {
       return true;
     }
@@ -761,23 +761,19 @@ bool Board::isSquareAttacked(Color color, const Position &position) {
   // King case
   {
     for (int i = -1; i < 2; ++i) {
-      auto *potentialAttackerHorizontal =
-          getPieceAt({position.first + i, position.second});
-      auto *potentialAttackerVertical =
+      const auto *potentialAttackerLeft =
+          getPieceAt({position.first - 1, position.second + i});
+      const auto *potentialAttackerCenter =
           getPieceAt({position.first, position.second + i});
-      auto *potentialAttackerUpwardDiagonal =
-          getPieceAt({position.first + i, position.second + i});
-      auto *potentialAttackerDownwardDiagonal =
-          getPieceAt({position.first + i, position.second - i});
+      const auto *potentialAttackerRight =
+          getPieceAt({position.first + 1, position.second + i});
 
-      if ((dynamic_cast<King *>(potentialAttackerHorizontal) &&
-           (potentialAttackerHorizontal->getColor() != color)) ||
-          (dynamic_cast<King *>(potentialAttackerVertical) &&
-           (potentialAttackerVertical->getColor() != color)) ||
-          (dynamic_cast<King *>(potentialAttackerUpwardDiagonal) &&
-           (potentialAttackerUpwardDiagonal->getColor() != color)) ||
-          (dynamic_cast<King *>(potentialAttackerDownwardDiagonal) &&
-           (potentialAttackerDownwardDiagonal->getColor() != color))) {
+      if ((dynamic_cast<const King *>(potentialAttackerLeft) &&
+           (potentialAttackerLeft->getColor() != color)) ||
+          (dynamic_cast<const King *>(potentialAttackerCenter) &&
+           (potentialAttackerCenter->getColor() != color)) ||
+          (dynamic_cast<const King *>(potentialAttackerRight) &&
+           (potentialAttackerRight->getColor() != color))) {
         return true;
       }
     }
@@ -799,7 +795,7 @@ bool Board::isKingInCheck(Color color) {
 
 bool Board::canKingGetOutOfCheck(Color color, const Position &start,
                                  const Position &end) {
-  if (dynamic_cast<King *>(getPieceAt(start))) {
+  if (dynamic_cast<const King *>(getPieceAt(start))) {
     return isSquareAttacked(color, end);
   }
 
@@ -1104,11 +1100,11 @@ void Board::updateBoardState(const Position &start, const Position &end) {
   m_enPassantSquare.reset();
   m_pawnToPromote.reset();
 
-  auto *pieceThatMoved = getPieceAt(end);
+  const auto *pieceThatMoved = getPieceAt(end);
 
   RETURN_IF_NULL(pieceThatMoved);
 
-  if (dynamic_cast<Pawn *>(pieceThatMoved)) {
+  if (dynamic_cast<const Pawn *>(pieceThatMoved)) {
     int lastRow = pieceThatMoved->getColor() == Color::white ? 7 : 0;
 
     // Pawn moved two spaces - need to store en passant square
@@ -1123,9 +1119,8 @@ void Board::updateBoardState(const Position &start, const Position &end) {
   }
 
   // Clear storage for moves to highlight
-  m_movesToHighlight.clear();
-  m_kingToHighlight.reset();
-  m_pieceToHighlight.reset();
+  clearOldPieceHighlight();
+  clearOldKingHighlight();
 
   refreshValidMoves();
 }
@@ -1155,7 +1150,7 @@ void Board::highlightPotentialMoves(const Position &position) {
   // Clear storage containers first
   clearOldPieceHighlight();
 
-  auto *pieceToHighlight = getPieceAt(position);
+  const auto *pieceToHighlight = getPieceAt(position);
 
   RETURN_IF_NULL(pieceToHighlight);
 
