@@ -64,6 +64,7 @@ void Board::loadTextures() {
 }
 
 void Board::loadGame() {
+  m_pieces.clear();
   m_pieces.resize(2);
   for (size_t i = 0; i < 2; ++i) {
     m_pieces[i].resize(k_totalPieces / 2);
@@ -317,16 +318,20 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
     }
   }
 
+  // Store as local variables so these heavy functions don't get called often
+  const bool inCheck = isKingInCheck(color);
+  const bool willBeInCheck = moveAndCheckForCheck(color, start, end);
+
   // First see if the king is in check
   // Then see if king will be in check
-  if (isKingInCheck(color)) {
-    if (moveAndCheckForCheck(color, start, end)) {
+  if (inCheck) {
+    if (willBeInCheck) {
       return false;
     }
   }
 
   // If this move leads to check, it is illegal
-  if (moveAndCheckForCheck(color, start, end)) {
+  if (willBeInCheck) {
     return false;
   }
 
@@ -338,6 +343,11 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
     if (std::abs(directionToMove.first) == 2 && directionToMove.second == 0) {
       // Cannot castle if king has moved
       if (pieceToMove->hasMoved()) {
+        return false;
+      }
+
+      // Cannot castle if in check
+      if (inCheck) {
         return false;
       }
 
@@ -999,7 +1009,7 @@ void Board::storeValidMoves() {
       }
 
       // See if stored moves are actually valid, and if they are,
-      // add them to both the board's and piece's of valid moves
+      // add them to both the board's and piece's valid moves
       for (size_t i = 0; i < moveStorage.size(); ++i) {
         const auto &potentialMove = moveStorage[i];
         if (isValidMove(color, position, potentialMove.end, true)) {
@@ -1260,4 +1270,36 @@ const Piece *Board::getKingFromColor(Color color) const {
   }
 
   return king;
+}
+
+void Board::testMove(const Position& start, const Position& end, int depth) {
+  auto *pieceToMove = getPieceAt(start);
+  auto *pieceAtDestination = getPieceAt(end);
+
+  RETURN_IF_NULL(pieceToMove);
+
+  if (pieceAtDestination) {
+    if (pieceToMove->getColor() == pieceAtDestination->getColor()) {
+      return;
+    }
+    // Exile to the shadow realm... for now
+    pieceAtDestination->setPosition({-depth, -depth});
+    pieceToMove->setPosition(end);
+  }
+
+  pieceToMove->setPosition(end);
+}
+
+void Board::undoMove(const Position& start, const Position& end, int depth) {
+  auto *pieceToMove = getPieceAt(end);
+  auto *pieceAtDestination = getPieceAt({-depth, -depth});
+
+  RETURN_IF_NULL(pieceToMove);
+
+  if (pieceAtDestination) {
+    // You're finally awake...
+    pieceAtDestination->setPosition(end);
+  }
+
+  pieceToMove->setPosition(start);
 }

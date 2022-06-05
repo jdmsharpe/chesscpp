@@ -32,6 +32,7 @@ constexpr int k_turnIndex = 12;
 } // namespace
 
 void Game::reset() {
+  m_inProgress = true;
   m_whiteToMove = true;
   m_winner.reset();
   m_displayWinnerOnceFlag = true;
