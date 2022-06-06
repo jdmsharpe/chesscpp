@@ -32,6 +32,8 @@ public:
 
   void sdlDisplay();
 
+  Piece *getPieceAt(const Position &position);
+
   bool isValidMove(Color color, const Position &start, const Position &end,
                    const bool forMoveStorage);
 
@@ -82,12 +84,14 @@ public:
 
   void undoMove(const Position &start, const Position &end, int depth = 10);
 
+  inline CastleStatus getCastleStatus() const {
+    return m_castleStatus;
+  }
+
 private:
   void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor);
 
   void sdlDrawPiece(const Piece *piece);
-
-  Piece *getPieceAt(const Position &position);
 
   std::pair<size_t, size_t> getIndexOfPiece(const Piece *piece);
 

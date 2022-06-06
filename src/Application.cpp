@@ -6,6 +6,9 @@ namespace {
 
 constexpr long k_counterMod = 10;
 
+const std::string k_fenFilename = "../chess/inc/load.fen";
+constexpr int k_firstFenIndex = 0;
+
 // Parse CLI arguments
 bool argumentPassed(char **start, char **end, const std::string &toFind) {
   return std::find(start, end, toFind) != end;
@@ -24,7 +27,7 @@ Application::Application(int argc, char **argv)
 
   // Passing "-l" as an additional argument loads the FEN stored in inc/load.fen
   if (argumentPassed(argv, argv + argc, "-l")) {
-    m_window->loadFen();
+    m_window->loadFen(k_fenFilename, k_firstFenIndex);
   } else {
     m_window->loadGame();
   }
