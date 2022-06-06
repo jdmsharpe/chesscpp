@@ -78,8 +78,9 @@ public:
   const LumpedBoardAndGameState &
   getBoardAndGameState(Color color, size_t halfMoveNum = 0, size_t turnNum = 1);
 
-  void testMove(const Position &start, const Position &end, int depth);
-  void undoMove(const Position &start, const Position &end, int depth);
+  void testMove(const Position &start, const Position &end, int depth = 10);
+
+  void undoMove(const Position &start, const Position &end, int depth = 10);
 
 private:
   void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor);

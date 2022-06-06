@@ -353,7 +353,9 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
 
       // Check squares along intended path to see if they are attacked
       int direction = sign(directionToMove.first);
-      for (int i = 1; i < 3; ++i) {
+      // Queenside castle must check one additional square
+      int queensideCastleExtension = (direction < 0) ? 1 : 0;
+      for (int i = -1 - queensideCastleExtension; i < 1; ++i) {
         if (isSquareAttacked(color,
                              {end.first + (i * direction), end.second})) {
           return false;
@@ -811,24 +813,17 @@ bool Board::moveAndCheckForCheck(Color color, const Position &start,
     return false;
   }
 
-  bool result;
-
-  if (!pieceAtDestination) {
-    pieceToMove->setPosition(end);
-    result = isKingInCheck(color);
-    pieceToMove->setPosition(start);
-  } else {
+  if (pieceAtDestination) {
     if (pieceToMove->getColor() == pieceAtDestination->getColor()) {
       return false;
     }
-    // Exile to the shadow realm
-    // 100% bad design
-    pieceAtDestination->setPosition({-1, -1});
-    pieceToMove->setPosition(end);
-    result = isKingInCheck(color);
-    pieceToMove->setPosition(start);
-    pieceAtDestination->setPosition(end);
   }
+
+  // Banish to the shadow realm
+  // 100% bad design
+  testMove(start, end);
+  bool result = isKingInCheck(color);
+  undoMove(start, end);
 
   return result;
 }
@@ -1121,8 +1116,6 @@ void Board::updateBoardState(const Position &start, const Position &end) {
   // Clear storage for moves to highlight
   clearOldPieceHighlight();
   clearOldKingHighlight();
-
-  refreshValidMoves();
 }
 
 bool Board::isInputValid(Color color, const std::queue<Position> &positions) {

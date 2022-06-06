@@ -262,11 +262,11 @@ bool Window::makePlayerMove() {
       std::cin >> m_promotionInput;
       if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
         m_board.promotePawn(m_promotionOutput);
-        // Call this again to update valid moves
-        m_board.updateBoardState(firstPosition, secondPosition);
         break;
       }
     }
+
+    m_board.refreshValidMoves();
 
     return true;
 
@@ -290,11 +290,9 @@ bool Window::makeComputerMove() {
 
   const auto &bestMove = m_computer.minimaxRoot(computerColor);
 
-  if (k_verbose) {
-    std::cout << "The move was from: " << bestMove.first.first << " "
-              << bestMove.first.second << " to: " << bestMove.first.first << " "
-              << bestMove.first.second << std::endl;
-  }
+  std::cout << "The move was from: " << bestMove.first.first << " "
+            << bestMove.first.second << " to: " << bestMove.first.first << " "
+            << bestMove.first.second << std::endl;
 
   // This call is enforced because the function is responsible for the move in
   // some cases
@@ -302,6 +300,14 @@ bool Window::makeComputerMove() {
                           false)) {
     m_board.movePiece(bestMove.first, bestMove.second);
     m_board.updateBoardState(bestMove.first, bestMove.second);
+
+    if (m_board.pawnToPromote()) {
+      // I'm not smart enough to code for situations where a queen isn't the
+      // best piece for promotion
+      m_board.promotePawn(PieceType::queen);
+    }
+
+    m_board.refreshValidMoves();
 
     return true;
   }
