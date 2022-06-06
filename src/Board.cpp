@@ -366,8 +366,8 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
         // Black kingside castle
         if (m_castleStatus[k_blackKingsideIndex] != 0) {
           // Cannot castle if rook has moved
-          if (dynamic_cast<Rook *>(getPieceAt({7, 7})) &&
-              !getPieceAt({7, 7})->hasMoved()) {
+          if (dynamic_cast<const Rook *>(getPieceAt({7, 7})) &&
+              !(getPieceAt({7, 7})->hasMoved())) {
             // Can only castle if no pieces are in the way
             if (!isPieceBlockingRook({7, 7}, {4, 7})) {
               if (!forMoveStorage) {
@@ -382,13 +382,16 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
 
               return true;
             }
+          } else {
+            // The rook has moved - castling is no longer possible
+            m_castleStatus[k_blackKingsideIndex] = 0;
           }
         }
       } else if (direction < 0 && color == Color::black) {
         // Black queenside castle
         if (m_castleStatus[k_blackQueensideIndex] != 0) {
-          if (dynamic_cast<Rook *>(getPieceAt({0, 7})) &&
-              !getPieceAt({0, 7})->hasMoved()) {
+          if (dynamic_cast<const Rook *>(getPieceAt({0, 7})) &&
+              !(getPieceAt({0, 7})->hasMoved())) {
             if (!isPieceBlockingRook({0, 7}, {4, 7})) {
               if (!forMoveStorage) {
                 m_castleStatus[k_blackKingsideIndex] = 0;
@@ -400,12 +403,14 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
 
               return true;
             }
+          } else {
+            m_castleStatus[k_blackQueensideIndex] = 0;
           }
         }
       } else if (direction > 0 && color == Color::white) {
         // White kingside castle
         if (m_castleStatus[k_whiteKingsideIndex] != 0) {
-          if (dynamic_cast<Rook *>(getPieceAt({7, 0})) &&
+          if (dynamic_cast<const Rook *>(getPieceAt({7, 0})) &&
               !getPieceAt({7, 0})->hasMoved()) {
             if (!isPieceBlockingRook({7, 0}, {4, 0})) {
               if (!forMoveStorage) {
@@ -418,12 +423,14 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
 
               return true;
             }
+          } else {
+            m_castleStatus[k_whiteKingsideIndex] = 0;
           }
         }
       } else if (direction < 0 && color == Color::white) {
         // White queenside castle
         if (m_castleStatus[k_whiteQueensideIndex] != 0) {
-          if (dynamic_cast<Rook *>(getPieceAt({0, 0})) &&
+          if (dynamic_cast<const Rook *>(getPieceAt({0, 0})) &&
               !getPieceAt({0, 0})->hasMoved()) {
             if (!isPieceBlockingRook({0, 0}, {4, 0})) {
               if (!forMoveStorage) {
@@ -436,6 +443,8 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
 
               return true;
             }
+          } else {
+            m_castleStatus[k_whiteQueensideIndex] = 0;
           }
         }
       }
@@ -1111,6 +1120,17 @@ void Board::updateBoardState(const Position &start, const Position &end) {
       // Promotion case
       m_pawnToPromote = pieceThatMoved->getPosition();
     }
+  } else if (dynamic_cast<const King *>(pieceThatMoved)) {
+    // If the king moves and does not castle, castling rights are lost
+    if (std::abs(getDirectionVector(start, end).first) != 2) {
+      if (pieceThatMoved->getColor() == Color::white) {
+        m_castleStatus[k_whiteKingsideIndex] = 0;
+        m_castleStatus[k_whiteQueensideIndex] = 0;
+      } else {
+        m_castleStatus[k_blackKingsideIndex] = 0;
+        m_castleStatus[k_blackQueensideIndex] = 0;
+      }
+    }
   }
 
   // Clear storage for moves to highlight
@@ -1260,7 +1280,7 @@ const Piece *Board::getKingFromColor(Color color) const {
   return king;
 }
 
-void Board::testMove(const Position& start, const Position& end, int depth) {
+void Board::testMove(const Position &start, const Position &end, int depth) {
   auto *pieceToMove = getPieceAt(start);
   auto *pieceAtDestination = getPieceAt(end);
 
@@ -1278,7 +1298,7 @@ void Board::testMove(const Position& start, const Position& end, int depth) {
   pieceToMove->setPosition(end);
 }
 
-void Board::undoMove(const Position& start, const Position& end, int depth) {
+void Board::undoMove(const Position &start, const Position &end, int depth) {
   auto *pieceToMove = getPieceAt(end);
   auto *pieceAtDestination = getPieceAt({-depth, -depth});
 

@@ -21,7 +21,9 @@ public:
   void handleKeyboardInput(const SDL_KeyboardEvent &kbe);
 
   inline void loadGame() { m_board.loadGame(); }
-  inline void loadFen() { m_board.loadFromState(m_game.parseFen()); }
+  inline void loadFen(const std::string filename, const int lineNumber) {
+    m_board.loadFromState(m_game.parseFen(filename, lineNumber));
+  }
 
   inline bool isGameInProgress() { return m_game.isInProgress(); }
 

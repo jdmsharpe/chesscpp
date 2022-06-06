@@ -60,7 +60,8 @@ public:
 
   void outputKingInCheck() const;
 
-  LumpedBoardAndGameState parseFen();
+  LumpedBoardAndGameState parseFen(const std::string filename,
+                                   const int lineNumber);
 
 private:
   inline void setTurn(Color color) {
