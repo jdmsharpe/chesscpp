@@ -6,6 +6,9 @@
 namespace {
 
 const std::string k_testFenFilepath = "../../chess/test/test.fen";
+constexpr int k_basicCastlingFenIndex = 0;
+constexpr int k_complexCastlingFenIndex = 1;
+constexpr int k_enPassantFenIndex = 2;
 
 const std::bitset<k_numCastleOptions> k_bothSidesCastleRights =
     std::bitset<k_numCastleOptions>().set();
@@ -141,7 +144,8 @@ TEST_F(TestBoard, HandleMove) {
 }
 
 TEST_F(TestBoard, BasicCastling) {
-  m_board->loadFromState(m_game->parseFen(k_testFenFilepath, 0));
+  m_board->loadFromState(m_game->parseFen(k_testFenFilepath, k_basicCastlingFenIndex));
+
   auto *whiteKing = m_board->getPieceAt({4, 0});
   auto *whiteKingsideRook = m_board->getPieceAt({7, 0});
   auto *blackKing = m_board->getPieceAt({4, 7});
@@ -175,7 +179,8 @@ TEST_F(TestBoard, BasicCastling) {
 }
 
 TEST_F(TestBoard, ComplexCastling) {
-  m_board->loadFromState(m_game->parseFen(k_testFenFilepath, 1));
+  m_board->loadFromState(m_game->parseFen(k_testFenFilepath, k_complexCastlingFenIndex));
+
   auto *whiteKing = m_board->getPieceAt({4, 0});
   auto *whiteKingsideRook = m_board->getPieceAt({7, 0});
   auto *blackKing = m_board->getPieceAt({4, 7});
@@ -202,14 +207,15 @@ TEST_F(TestBoard, ComplexCastling) {
   // Still, black cannot castle kingside: there's a white pawn attacking
   EXPECT_FALSE(m_board->isValidMove(Color::black, {4, 7}, {6, 7}, true));
 
-  // After moving the black queenside rook,
-  // castling is no longer possible on that side...
+  // After moving the black queenside rook...
   m_board->movePiece({0, 7}, {1, 7});
+  m_board->updateBoardState({0, 7}, {1, 7});
   EXPECT_FALSE(m_board->isValidMove(Color::black, {4, 7}, {2, 7}, true));
   EXPECT_FALSE(m_board->getCastleStatus() == k_bothSidesCastleRights);
 
-  // ...even after moving back
+  // ...castling is no longer possible on that side, even after moving back
   m_board->movePiece({1, 7}, {0, 7});
+  m_board->updateBoardState({1, 7}, {0, 7});
   EXPECT_FALSE(m_board->isValidMove(Color::black, {4, 7}, {2, 7}, true));
   EXPECT_TRUE(m_board->getCastleStatus() == k_blackLostQueensideCastleRights);
 
@@ -218,6 +224,12 @@ TEST_F(TestBoard, ComplexCastling) {
   m_board->updateBoardState({4, 0}, {3, 0});
   EXPECT_TRUE(m_board->getCastleStatus() == k_blackOnlyKingsideCastleRights);
 }
+
+TEST_F(TestBoard, EnPassant) {
+
+}
+
+// std::cout << m_board->getCastleStatus()[0] << m_board->getCastleStatus()[1] << m_board->getCastleStatus()[2] << m_board->getCastleStatus()[3] << std::endl;
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

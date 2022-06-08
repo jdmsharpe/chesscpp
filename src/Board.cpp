@@ -130,7 +130,7 @@ void Board::loadFromState(const LumpedBoardAndGameState &state) {
   createPiecesFromContainer.template operator()<King>(state.kings);
 
   m_castleStatus = state.castleStatus;
-  m_enPassantSquare = state.enPassantTarget;
+  m_enPassantStatus = state.enPassantStatus;
 }
 
 void Board::cliDisplay(Color color) {
@@ -366,8 +366,8 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
         // Black kingside castle
         if (m_castleStatus[k_blackKingsideIndex] != 0) {
           // Cannot castle if rook has moved
-          if (dynamic_cast<const Rook *>(getPieceAt({7, 7})) &&
-              !(getPieceAt({7, 7})->hasMoved())) {
+          if (dynamic_cast<Rook *>(getPieceAt({7, 7})) &&
+              !getPieceAt({7, 7})->hasMoved()) {
             // Can only castle if no pieces are in the way
             if (!isPieceBlockingRook({7, 7}, {4, 7})) {
               if (!forMoveStorage) {
@@ -382,16 +382,13 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
 
               return true;
             }
-          } else {
-            // The rook has moved - castling is no longer possible
-            m_castleStatus[k_blackKingsideIndex] = 0;
           }
         }
       } else if (direction < 0 && color == Color::black) {
         // Black queenside castle
         if (m_castleStatus[k_blackQueensideIndex] != 0) {
-          if (dynamic_cast<const Rook *>(getPieceAt({0, 7})) &&
-              !(getPieceAt({0, 7})->hasMoved())) {
+          if (dynamic_cast<Rook *>(getPieceAt({0, 7})) &&
+              !getPieceAt({0, 7})->hasMoved()) {
             if (!isPieceBlockingRook({0, 7}, {4, 7})) {
               if (!forMoveStorage) {
                 m_castleStatus[k_blackKingsideIndex] = 0;
@@ -403,14 +400,12 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
 
               return true;
             }
-          } else {
-            m_castleStatus[k_blackQueensideIndex] = 0;
           }
         }
       } else if (direction > 0 && color == Color::white) {
         // White kingside castle
         if (m_castleStatus[k_whiteKingsideIndex] != 0) {
-          if (dynamic_cast<const Rook *>(getPieceAt({7, 0})) &&
+          if (dynamic_cast<Rook *>(getPieceAt({7, 0})) &&
               !getPieceAt({7, 0})->hasMoved()) {
             if (!isPieceBlockingRook({7, 0}, {4, 0})) {
               if (!forMoveStorage) {
@@ -423,14 +418,12 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
 
               return true;
             }
-          } else {
-            m_castleStatus[k_whiteKingsideIndex] = 0;
           }
         }
       } else if (direction < 0 && color == Color::white) {
         // White queenside castle
         if (m_castleStatus[k_whiteQueensideIndex] != 0) {
-          if (dynamic_cast<const Rook *>(getPieceAt({0, 0})) &&
+          if (dynamic_cast<Rook *>(getPieceAt({0, 0})) &&
               !getPieceAt({0, 0})->hasMoved()) {
             if (!isPieceBlockingRook({0, 0}, {4, 0})) {
               if (!forMoveStorage) {
@@ -443,8 +436,6 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
 
               return true;
             }
-          } else {
-            m_castleStatus[k_whiteQueensideIndex] = 0;
           }
         }
       }
@@ -455,7 +446,7 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
   // whose move and attack squares are different, which leads to extra logic
   if (dynamic_cast<Pawn *>(pieceToMove)) {
     Position directionToMove = getDirectionVector(start, end);
-    int sign = pieceToMove->getColor() == Color::white ? -1 : 1;
+    int sign = (pieceToMove->getColor() == Color::white) ? -1 : 1;
     // Pawns are allowed to move diagonally only if there's a piece to capture
     if (pieceAtDestination) {
       if (pieceToMove->getColor() != pieceAtDestination->getColor()) {
@@ -468,20 +459,22 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
     } else {
       // En passant case
       // Pawn can capture only if there is a valid en passant square
-      if (end == m_enPassantSquare) {
-        if ((pieceToMove->getPosition().first + 1) ==
-                m_enPassantSquare->first ||
-            (pieceToMove->getPosition().first - 1) ==
-                m_enPassantSquare->first) {
-          if (pieceToMove->getPosition().second - sign ==
-              m_enPassantSquare->second) {
-            if (!forMoveStorage) {
-              // Handle capture here as it is unorthodox
-              movePiece(start, end);
-              capturePiece({end.first, end.second + sign});
-            }
+      if (m_enPassantStatus.has_value()) {
+        if (end == m_enPassantStatus->second &&
+            color != m_enPassantStatus->first) {
+          const int enPassantX = m_enPassantStatus->second.first;
+          const int enPassantY = m_enPassantStatus->second.second;
+          if ((pieceToMove->getPosition().first + 1) == enPassantX ||
+              (pieceToMove->getPosition().first - 1) == enPassantX) {
+            if (pieceToMove->getPosition().second - sign == enPassantY) {
+              if (!forMoveStorage) {
+                // Handle capture here as it is unorthodox
+                movePiece(start, end);
+                capturePiece({end.first, end.second + sign});
+              }
 
-            return true;
+              return true;
+            }
           }
         }
       }
@@ -828,8 +821,6 @@ bool Board::moveAndCheckForCheck(Color color, const Position &start,
     }
   }
 
-  // Banish to the shadow realm
-  // 100% bad design
   testMove(start, end);
   bool result = isKingInCheck(color);
   undoMove(start, end);
@@ -883,9 +874,9 @@ void Board::storeValidMoves() {
         moveStorage.emplace_back(
             PieceType::pawn, color, position,
             Position({position.first + 1, position.second + sign}));
-        if (m_enPassantSquare.has_value()) {
+        if (m_enPassantStatus.has_value()) {
           moveStorage.emplace_back(PieceType::pawn, color, position,
-                                   m_enPassantSquare.value());
+                                   m_enPassantStatus.value().second);
         }
 
       } else if (dynamic_cast<Knight *>(pieceToCheck)) {
@@ -1101,35 +1092,46 @@ bool Board::promotePawn(const PieceType &piece) {
 
 void Board::updateBoardState(const Position &start, const Position &end) {
   // Clear board events that are only active for a single turn
-  m_enPassantSquare.reset();
+  m_enPassantStatus.reset();
   m_pawnToPromote.reset();
 
   const auto *pieceThatMoved = getPieceAt(end);
 
   RETURN_IF_NULL(pieceThatMoved);
 
+  Color color = pieceThatMoved->getColor();
+
+  // Handle special events
   if (dynamic_cast<const Pawn *>(pieceThatMoved)) {
-    int lastRow = pieceThatMoved->getColor() == Color::white ? 7 : 0;
+    int lastRow = (color == Color::white) ? 7 : 0;
 
     // Pawn moved two spaces - need to store en passant square
     if (std::abs(getDirectionVector(start, end).second) == 2) {
-      int sign = (pieceThatMoved->getColor() == Color::white) ? -1 : 1;
+      int sign = (color == Color::white) ? -1 : 1;
       // Register en passant square as square directly behind pawn
-      m_enPassantSquare = {end.first, end.second + sign};
+      m_enPassantStatus = {color, {end.first, end.second + sign}};
     } else if (pieceThatMoved->getPosition().second == lastRow) {
       // Promotion case
       m_pawnToPromote = pieceThatMoved->getPosition();
     }
   } else if (dynamic_cast<const King *>(pieceThatMoved)) {
-    // If the king moves and does not castle, castling rights are lost
-    if (std::abs(getDirectionVector(start, end).first) != 2) {
-      if (pieceThatMoved->getColor() == Color::white) {
-        m_castleStatus[k_whiteKingsideIndex] = 0;
-        m_castleStatus[k_whiteQueensideIndex] = 0;
-      } else {
-        m_castleStatus[k_blackKingsideIndex] = 0;
-        m_castleStatus[k_blackQueensideIndex] = 0;
-      }
+    // Update castle status
+    if (color == Color::white) {
+      m_castleStatus[k_whiteKingsideIndex] = 0;
+      m_castleStatus[k_whiteQueensideIndex] = 0;
+    } else {
+      m_castleStatus[k_blackKingsideIndex] = 0;
+      m_castleStatus[k_blackQueensideIndex] = 0;
+    }
+  } else if (dynamic_cast<const Rook *>(pieceThatMoved)) {
+    if (color == Color::white && start == Position({0, 0})) {
+      m_castleStatus[k_whiteQueensideIndex] = 0;
+    } else if (color == Color::white && start == Position({7, 0})) {
+      m_castleStatus[k_whiteQueensideIndex] = 0;
+    } else if (color == Color::black && start == Position({0, 7})) {
+      m_castleStatus[k_blackQueensideIndex] = 0;
+    } else if (color == Color::black && start == Position({7, 7})) {
+      m_castleStatus[k_blackKingsideIndex] = 0;
     }
   }
 
@@ -1252,7 +1254,7 @@ Board::getBoardAndGameState(Color color, size_t halfMoveNum, size_t turnNum) {
   }
 
   m_boardAndGameState.castleStatus = m_castleStatus;
-  m_boardAndGameState.enPassantTarget = m_enPassantSquare;
+  m_boardAndGameState.enPassantStatus = m_enPassantStatus;
 
   // Function arguments are passed from game instance
   m_boardAndGameState.whoseTurn = color;
@@ -1290,7 +1292,7 @@ void Board::testMove(const Position &start, const Position &end, int depth) {
     if (pieceToMove->getColor() == pieceAtDestination->getColor()) {
       return;
     }
-    // Exile to the shadow realm... for now
+    // Banish to the shadow realm... for now
     pieceAtDestination->setPosition({-depth, -depth});
     pieceToMove->setPosition(end);
   }

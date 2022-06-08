@@ -20,7 +20,7 @@
 static bool k_verbose = false;
 
 // Increments after every application run() call
-static volatile long k_counter = 0;
+static long k_counter = 0;
 
 // SDL window default dimensions
 constexpr int k_windowWidth = 800;
@@ -58,6 +58,7 @@ typedef std::pair<int, int> Position;
 
 using PieceContainer = std::vector<std::pair<Color, Position>>;
 using CastleStatus = std::bitset<k_numCastleOptions>;
+using EnPassantStatus = std::optional<std::pair<Color, Position>>;
 
 // Representation of the entirety of both board and game states.
 struct LumpedBoardAndGameState {
@@ -73,7 +74,7 @@ struct LumpedBoardAndGameState {
   //           white kingside,
   //           white queenside
   CastleStatus castleStatus;
-  std::optional<Position> enPassantTarget;
+  EnPassantStatus enPassantStatus;
 
   // Game state
   Color whoseTurn;
@@ -91,7 +92,7 @@ struct LumpedBoardAndGameState {
     kings.reserve(k_maxKingsPossible);
 
     castleStatus.set();
-    enPassantTarget.reset();
+    enPassantStatus.reset();
   }
 };
 

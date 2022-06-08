@@ -139,8 +139,8 @@ private:
   // Both sides' castling availability
   CastleStatus m_castleStatus = CastleStatus().set();
 
-  // Stored en passant square, if any
-  std::optional<Position> m_enPassantSquare = std::nullopt;
+  // Stored pawn color and en passant square, if any
+  EnPassantStatus m_enPassantStatus = std::nullopt;
 
   // Stored pawn to promote, if any
   std::optional<Position> m_pawnToPromote = std::nullopt;
