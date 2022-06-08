@@ -27,6 +27,8 @@ constexpr int k_enPassantIndex = 10;
 constexpr int k_halfMoveIndex = 11;
 constexpr int k_turnIndex = 12;
 
+constexpr int k_whiteEnPassantRow = 3;
+
 } // namespace
 
 void Game::reset() {
@@ -232,13 +234,17 @@ LumpedBoardAndGameState Game::parseFen(const std::string filename,
 
           if (i == k_enPassantIndex) {
             if (tokens[i] == "-") {
-              state.enPassantTarget = std::nullopt;
+              state.enPassantStatus = std::nullopt;
               continue;
             } else {
               if (tokens[i].length() == 2 &&
                   std::regex_search(tokens[i], k_legalMove)) {
-                state.enPassantTarget = {k_letterToIndex.at(tokens[i][0]),
-                                        k_numberToIndex.at(tokens[i][1])};
+                Color color = (tokens[i][1] == k_whiteEnPassantRow)
+                                  ? Color::white
+                                  : Color::black;
+                state.enPassantStatus = {color,
+                                         {k_letterToIndex.at(tokens[i][0]),
+                                          k_numberToIndex.at(tokens[i][1])}};
                 continue;
               }
             }
