@@ -7,7 +7,7 @@ At some point, I might try to write an AI so this can be fully 1-player.
 ![Chess GIF](https://media2.giphy.com/media/aA8bACmZSEhHIdxsfU/giphy.gif?cid=790b761186235a808b461eff10cc757c9a1679cbd330530d&rid=giphy.gif&ct=g)
 
 ## Build Instructions
-1. Requires cmake: `sudo apt-get install cmake`
+1. Requires cmake, SDL2, and SDL2_Image: `sudo apt-get install cmake libsdl2-dev libsdl2-image-dev`
 2. Clone repo
 3. In the same directory as the cloned repo, create a build folder: `mkdir chess_build`
 4. `cd chess_build`
