@@ -33,6 +33,7 @@ public:
   inline bool isComputerPlaying() const { return m_isComputerPlaying; }
   inline void setComputerPlaying(const bool isPlaying) {
     m_isComputerPlaying = isPlaying;
+    m_board.setComputerPlaying(isPlaying);
   }
 
 private:

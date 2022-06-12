@@ -88,6 +88,10 @@ public:
     return m_castleStatus;
   }
 
+  inline void setComputerPlaying(const bool isPlaying) {
+    m_isComputerPlaying = isPlaying;
+  }
+
 private:
   void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor);
 
@@ -144,6 +148,8 @@ private:
 
   // Stored pawn to promote, if any
   std::optional<Position> m_pawnToPromote = std::nullopt;
+
+  bool m_isComputerPlaying = false;
 };
 
 #endif // BOARD_H

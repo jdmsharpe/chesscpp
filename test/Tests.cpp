@@ -219,7 +219,7 @@ TEST_F(TestBoard, ComplexCastling) {
   EXPECT_FALSE(m_board->isValidMove(Color::black, {4, 7}, {2, 7}, true));
   EXPECT_TRUE(m_board->getCastleStatus() == k_blackLostQueensideCastleRights);
 
-  // White moving the queen prevents white from ever castling
+  // White moving the king prevents white from ever castling
   m_board->movePiece({4, 0}, {3, 0});
   m_board->updateBoardState({4, 0}, {3, 0});
   EXPECT_TRUE(m_board->getCastleStatus() == k_blackOnlyKingsideCastleRights);

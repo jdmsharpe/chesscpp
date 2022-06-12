@@ -307,7 +307,9 @@ bool Board::isValidMove(Color color, const Position &start, const Position &end,
   }
 
   // Can't move pieces of the opposing color
-  if (pieceToMove->getColor() != color) {
+  // Allow this for the computer player as they need to check advantages
+  // for both players
+  if (pieceToMove->getColor() != color && !m_isComputerPlaying) {
     return false;
   }
 
@@ -890,6 +892,7 @@ void Board::storeValidMoves() {
         }
       } else if (dynamic_cast<Bishop *>(pieceToCheck)) {
         // Bishops have... well, now we have to check everything
+        // TODO: optimize
         for (int i = 1; i < 8; ++i) {
           moveStorage.emplace_back(
               PieceType::bishop, color, position,
@@ -1197,18 +1200,10 @@ void Board::highlightKingInCheck(Color color) {
 const std::vector<FullMove> Board::getValidMovesFor(Color color) const {
   std::vector<FullMove> toReturn = {};
   for (const auto &move : m_allValidMoves) {
-    toReturn.emplace_back(move);
+    if (color == move.color) {
+      toReturn.emplace_back(move);
+    }
   }
-
-  auto checkForOpposingColor = [&color](const FullMove &input) {
-    return color != input.color;
-  };
-
-  // Don't need moves of opposing color
-  toReturn.erase(std::remove_copy_if(m_allValidMoves.cbegin(),
-                                     m_allValidMoves.cend(), toReturn.begin(),
-                                     checkForOpposingColor),
-                 toReturn.end());
 
   return toReturn;
 }

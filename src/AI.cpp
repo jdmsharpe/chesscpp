@@ -124,9 +124,9 @@ auto addToAdvantage = [](const PieceContainer &container, int pieceValue,
     // Evaluation tables are structured for white, so flip the table
     // vertically for black
     advantage += (piece.first == Color::white)
-                     ? evalTable[piece.second.first][piece.second.second]
-                     : -evalTable[piece.second.first]
-                                 [k_maxSquareIndex - piece.second.second];
+                     ? evalTable[piece.second.second][piece.second.first]
+                     : -evalTable[k_maxSquareIndex - piece.second.second]
+                                 [piece.second.first];
   }
 
   return advantage;
@@ -171,11 +171,12 @@ std::pair<Position, Position> AI::minimaxRoot(Color max) {
     const auto &moveToMake = startingMoves[i];
     m_board.testMove(moveToMake.start, moveToMake.end, k_minimaxDepth);
     int advantage =
-        -minimax(getOtherColor(max), k_minimaxDepth - 1, -10000, 10000);
+        minimax(getOtherColor(max), k_minimaxDepth - 1, -10000, 10000);
     m_board.undoMove(moveToMake.start, moveToMake.end, k_minimaxDepth);
 
     if (advantage >= bestAdvantage) {
       bestAdvantage = advantage;
+      std::cout << advantage << std::endl;
       bestMove = std::make_pair(startingMoves[i].start, startingMoves[i].end);
     }
   }
@@ -185,18 +186,19 @@ std::pair<Position, Position> AI::minimaxRoot(Color max) {
   return bestMove;
 }
 
-int AI::minimax(Color max, int depth, int alpha, int beta) {
+int AI::minimax(Color color, int depth, int alpha, int beta) {
   if (depth == 0) {
-    return getAdvantage();
+    int multiplier = (color == Color::white) ? -1 : 1;
+    return getAdvantage() * multiplier;
   }
 
   m_board.refreshValidMoves();
-  const auto &moves = m_board.getValidMovesFor(max);
+  const auto &moves = m_board.getValidMovesFor(color);
   int bestAdvantage = 0;
 
-  if (max == m_color.value()) {
+  if (color == m_color.value()) {
     if (moves.size() == 0) {
-      if (m_board.isKingInCheck(max)) {
+      if (m_board.isKingInCheck(color)) {
         return -9999;
       }
 
@@ -208,17 +210,17 @@ int AI::minimax(Color max, int depth, int alpha, int beta) {
     for (size_t i = 0; i < moves.size(); ++i) {
       const auto &moveToMake = moves[i];
       m_board.testMove(moveToMake.start, moveToMake.end, depth);
-      bestAdvantage = -minimax(getOtherColor(max), depth - 1, -beta, -alpha);
+      bestAdvantage = std::max(
+          bestAdvantage, minimax(getOtherColor(color), depth - 1, alpha, beta));
       m_board.undoMove(moveToMake.start, moveToMake.end, depth);
       alpha = std::max(alpha, bestAdvantage);
       if (beta <= alpha) {
         return bestAdvantage;
       }
     }
-
   } else {
     if (moves.size() == 0) {
-      if (m_board.isKingInCheck(max)) {
+      if (m_board.isKingInCheck(getOtherColor(color))) {
         return 9999;
       }
 
@@ -230,7 +232,8 @@ int AI::minimax(Color max, int depth, int alpha, int beta) {
     for (size_t i = 0; i < moves.size(); ++i) {
       const auto &moveToMake = moves[i];
       m_board.testMove(moveToMake.start, moveToMake.end, depth);
-      bestAdvantage = -minimax(getOtherColor(max), depth - 1, -beta, -alpha);
+      bestAdvantage = std::min(
+          bestAdvantage, minimax(getOtherColor(color), depth - 1, alpha, beta));
       m_board.undoMove(moveToMake.start, moveToMake.end, depth);
       beta = std::min(beta, bestAdvantage);
       if (beta <= alpha) {
