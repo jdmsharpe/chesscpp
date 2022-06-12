@@ -93,6 +93,11 @@ int Application::run() {
     case AppState::GAME_COMPLETE:
       m_window->endGame();
       break;
+
+    case AppState::MENU:
+    case AppState::UNKNOWN:
+      // Unimplemented for now
+      break;
     }
 
     if (!m_legacyMode) {
