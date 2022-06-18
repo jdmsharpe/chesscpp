@@ -24,8 +24,7 @@ public:
 private:
   Board &m_board;
 
-  // For now, hardcode
-  // TODO: Let player choose their color and set computer to be opposite
+  // Default color is black if no flag is passed
   std::optional<Color> m_color = Color::black;
 };
 

@@ -42,6 +42,22 @@ Application::Application(int argc, char **argv)
     m_window->setComputerPlaying(true);
   }
 
+  // Passing "-w" as an additional argument sets the active player to white
+  if (argumentPassed(argv, argv + argc, "-w")) {
+    m_window->setTurn(Color::white);
+    if (m_window->isComputerPlaying()) {
+      m_window->setComputerColor(Color::black);
+    }
+  }
+
+  // Passing "-b" as an additional argument sets the active player to black
+  if (argumentPassed(argv, argv + argc, "-b")) {
+    m_window->setTurn(Color::black);
+    if (m_window->isComputerPlaying()) {
+      m_window->setComputerColor(Color::white);
+    }
+  }
+
   m_appState = AppState::GAME_IN_PROGRESS;
 }
 
