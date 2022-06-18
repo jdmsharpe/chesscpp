@@ -8,11 +8,7 @@ namespace {
 // 16 ms is equivalent to ~60 FPS (really 62.5 FPS)
 constexpr int k_dt = 16; // ms
 
-constexpr int k_checkmateValue = 2000;
-
-Position convertMouseInputToPosition(const int x, const int y) {
-  return {x / k_squareWidth, std::abs((y / k_squareWidth))};
-}
+constexpr int k_whiteVerticalOffset = 7;
 
 } // namespace
 
@@ -88,7 +84,19 @@ void Window::render() {
   SDL_SetRenderDrawColor(m_sdlRenderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(m_sdlRenderer);
 
-  m_board.sdlDisplay();
+  if (m_isComputerPlaying) {
+    // Don't need to show board from computer's perspective
+    RETURN_IF_VALID(!m_computer.getColor().has_value());
+
+    if (m_game.whoseTurnIsIt() == m_computer.getColor().value()) {
+      m_board.sdlDisplay(m_game.whoseTurnIsItNot());
+    } else {
+      m_board.sdlDisplay(m_game.whoseTurnIsIt());
+    }
+
+  } else {
+    m_board.sdlDisplay(m_game.whoseTurnIsIt());
+  }
 
   SDL_RenderPresent(m_sdlRenderer);
 
@@ -119,7 +127,14 @@ void Window::handleMouseInput(const SDL_MouseButtonEvent &mbe) {
                     (y < 0 || y >= k_windowHeight));
 
     // Push back to storage queue
-    m_clickedPositionQueue.push(convertMouseInputToPosition(x, y));
+    if (m_game.whoseTurnIsIt() == Color::black) {
+      m_clickedPositionQueue.emplace(x / k_squareWidth,
+                                     std::abs((y / k_squareWidth)));
+    } else {
+      m_clickedPositionQueue.emplace(x / k_squareWidth,
+                                     k_whiteVerticalOffset -
+                                         std::abs((y / k_squareWidth)));
+    }
   }
 }
 

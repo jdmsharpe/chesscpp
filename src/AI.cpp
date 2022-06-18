@@ -13,7 +13,7 @@ constexpr int k_knightValue = 300;
 constexpr int k_bishopValue = 300;
 constexpr int k_rookValue = 500;
 constexpr int k_queenValue = 900;
-constexpr int k_kingValue = 1000;
+constexpr int k_kingValue = 9000;
 
 constexpr int k_maxSquareIndex = 7;
 
@@ -197,15 +197,21 @@ int AI::minimax(Color color, int depth, int alpha, int beta) {
   int bestAdvantage = 0;
 
   if (color == m_color.value()) {
+    bestAdvantage = -9999;
+
     if (moves.size() == 0) {
       if (m_board.isKingInCheck(color)) {
+        // Checkmate
         return -9999;
       }
 
+      // Stalemate
       return 0;
     }
 
-    bestAdvantage = -9999;
+    if (m_board.getFiftyMoveRuleCount() >= 50) {
+      return 0;
+    }
 
     for (size_t i = 0; i < moves.size(); ++i) {
       const auto &moveToMake = moves[i];
@@ -219,6 +225,8 @@ int AI::minimax(Color color, int depth, int alpha, int beta) {
       }
     }
   } else {
+    bestAdvantage = 9999;
+
     if (moves.size() == 0) {
       if (m_board.isKingInCheck(color)) {
         return 9999;
@@ -227,7 +235,9 @@ int AI::minimax(Color color, int depth, int alpha, int beta) {
       return 0;
     }
 
-    bestAdvantage = 9999;
+    if (m_board.getFiftyMoveRuleCount() >= 50) {
+      return 0;
+    }
 
     for (size_t i = 0; i < moves.size(); ++i) {
       const auto &moveToMake = moves[i];

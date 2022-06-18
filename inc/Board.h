@@ -30,7 +30,7 @@ public:
 
   void cliDisplay(Color color);
 
-  void sdlDisplay();
+  void sdlDisplay(Color color);
 
   Piece *getPieceAt(const Position &position);
 
@@ -92,10 +92,14 @@ public:
     m_isComputerPlaying = isPlaying;
   }
 
+  inline size_t getFiftyMoveRuleCount() const {
+    return m_fiftyMoveRuleCount;
+  }
+
 private:
   void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor);
 
-  void sdlDrawPiece(const Piece *piece);
+  void sdlDrawPiece(Color color, const Piece *piece, int verticalOffset);
 
   std::pair<size_t, size_t> getIndexOfPiece(const Piece *piece);
 
