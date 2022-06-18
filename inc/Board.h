@@ -116,6 +116,8 @@ private:
 
   const Piece *getKingFromColor(Color color) const;
 
+  bool checkForDeadPosition() const;
+
   SDL_Renderer *m_renderer = NULL;
 
   // Holds texture of image with all piece sprites
@@ -150,6 +152,10 @@ private:
   std::optional<Position> m_pawnToPromote = std::nullopt;
 
   bool m_isComputerPlaying = false;
+
+  bool m_pawnMovedOrPieceCaptured = false;
+
+  size_t m_fiftyMoveRuleCount = 0;
 };
 
 #endif // BOARD_H
