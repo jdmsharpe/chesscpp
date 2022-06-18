@@ -136,6 +136,8 @@ void Board::loadFromState(const LumpedBoardAndGameState &state) {
   m_enPassantStatus = state.enPassantStatus;
 
   m_fiftyMoveRuleCount = state.halfMoveNum;
+
+  refreshValidMoves();
 }
 
 void Board::cliDisplay(Color color) {
@@ -165,34 +167,51 @@ void Board::cliDisplay(Color color) {
   }
 }
 
-void Board::sdlDisplay() {
+void Board::sdlDisplay(Color color) {
+  // Handle displaying the board from the active player's perspective
+  int verticalOffset = 0;
+
+  if (color == Color::white) {
+    verticalOffset = 7;
+  }
+
   // Render board squares
   for (int i = 0; i < 8; ++i) {
     for (int j = 0; j < 8; ++j) {
-      ((i + j) % 2 == 0) ? sdlDrawSquare({j, i}, k_evenColor)
-                         : sdlDrawSquare({j, i}, k_oddColor);
+      ((i + j) % 2 == 0)
+          ? sdlDrawSquare({std::abs(verticalOffset - j), i}, k_evenColor)
+          : sdlDrawSquare({std::abs(verticalOffset - j), i}, k_oddColor);
     }
   }
 
   // Highlight piece that was clicked, if any
   if (m_pieceToHighlight.has_value()) {
-    sdlDrawSquare(m_pieceToHighlight.value(), k_selectedPieceColor);
+    const auto &position = m_pieceToHighlight.value();
+    sdlDrawSquare(
+        {position.first, std::abs(verticalOffset - position.second)},
+        k_selectedPieceColor);
   }
 
   // Highlight valid moves for piece that was clicked, if any
   for (size_t i = 0; i < m_movesToHighlight.size(); ++i) {
-    sdlDrawSquare(m_movesToHighlight[i], k_movementOptionColor);
+    const auto &position = m_movesToHighlight[i];
+    sdlDrawSquare(
+        {position.first, std::abs(verticalOffset - position.second)},
+        k_movementOptionColor);
   }
 
   // Highlights king's square with a warning color if in check
   if (m_kingToHighlight.has_value()) {
-    sdlDrawSquare(m_kingToHighlight.value(), k_checkColor);
+    const auto &position = m_kingToHighlight.value();
+    sdlDrawSquare(
+        {position.first, std::abs(verticalOffset - position.second)},
+        k_checkColor);
   }
 
   // Render all pieces
   for (auto &side : m_pieces) {
     for (auto &piece : side) {
-      sdlDrawPiece(piece.get());
+      sdlDrawPiece(color, piece.get(), verticalOffset);
     }
   }
 }
@@ -209,7 +228,7 @@ void Board::sdlDrawSquare(const Position &position, const SDL_Color &sdlColor) {
   SDL_RenderFillRect(m_renderer, &square);
 }
 
-void Board::sdlDrawPiece(const Piece *piece) {
+void Board::sdlDrawPiece(Color color, const Piece *piece, int verticalOffset) {
   RETURN_IF_NULL(piece);
 
   int pieceXOffset = 0;
@@ -246,12 +265,13 @@ void Board::sdlDrawPiece(const Piece *piece) {
                        .w = k_pieceWidth,
                        .h = k_pieceHeight};
 
-  SDL_Rect screenBox = {.x = (position.first * k_screenBoxSize) -
-                             k_screenBoxOffset + screenXOffset,
-                        .y = (position.second * k_screenBoxSize) -
-                             k_screenBoxOffset,
-                        .w = k_pieceWidth,
-                        .h = k_pieceHeight};
+  SDL_Rect screenBox = {
+      .x = (position.first * k_screenBoxSize) - k_screenBoxOffset +
+           screenXOffset,
+      .y = (std::abs(verticalOffset - position.second) * k_screenBoxSize) -
+           k_screenBoxOffset,
+      .w = k_pieceWidth,
+      .h = k_pieceHeight};
 
   SDL_RenderCopy(m_renderer, m_pieceImageTexture, &pieceBox, &screenBox);
 }

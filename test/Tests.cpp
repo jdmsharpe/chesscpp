@@ -8,7 +8,11 @@ namespace {
 const std::string k_testFenFilepath = "../../chess/test/test.fen";
 constexpr int k_basicCastlingFenIndex = 0;
 constexpr int k_complexCastlingFenIndex = 1;
-constexpr int k_enPassantFenIndex = 2;
+constexpr int k_kingVsKingFenIndex = 2;
+constexpr int k_kingVsKingAndBishopFenIndex = 3;
+constexpr int k_kingVsKingAndKnightFenIndex = 4;
+constexpr int k_kingsWithBishopsOnSameColorFenIndex = 5;
+constexpr int k_fiftyMoveRuleFenIndex = 6;
 
 const std::bitset<k_numCastleOptions> k_bothSidesCastleRights =
     std::bitset<k_numCastleOptions>().set();
@@ -144,7 +148,8 @@ TEST_F(TestBoard, HandleMove) {
 }
 
 TEST_F(TestBoard, BasicCastling) {
-  m_board->loadFromState(m_game->parseFen(k_testFenFilepath, k_basicCastlingFenIndex));
+  m_board->loadFromState(
+      m_game->parseFen(k_testFenFilepath, k_basicCastlingFenIndex));
 
   auto *whiteKing = m_board->getPieceAt({4, 0});
   auto *whiteKingsideRook = m_board->getPieceAt({7, 0});
@@ -179,7 +184,8 @@ TEST_F(TestBoard, BasicCastling) {
 }
 
 TEST_F(TestBoard, ComplexCastling) {
-  m_board->loadFromState(m_game->parseFen(k_testFenFilepath, k_complexCastlingFenIndex));
+  m_board->loadFromState(
+      m_game->parseFen(k_testFenFilepath, k_complexCastlingFenIndex));
 
   auto *whiteKing = m_board->getPieceAt({4, 0});
   auto *whiteKingsideRook = m_board->getPieceAt({7, 0});
@@ -225,11 +231,62 @@ TEST_F(TestBoard, ComplexCastling) {
   EXPECT_TRUE(m_board->getCastleStatus() == k_blackOnlyKingsideCastleRights);
 }
 
-TEST_F(TestBoard, EnPassant) {
+TEST_F(TestBoard, InsufficientMaterial) {
+  // Sanity check
+  m_board->loadFromState(
+      m_game->parseFen(k_testFenFilepath, k_basicCastlingFenIndex));
+  EXPECT_FALSE(m_board->hasStalemateOccurred(Color::white));
 
+  // King vs. king case
+  m_board->loadFromState(
+      m_game->parseFen(k_testFenFilepath, k_kingVsKingFenIndex));
+  EXPECT_TRUE(m_board->hasStalemateOccurred(Color::white));
+
+  // King vs. king and bishop case
+  m_board->loadFromState(
+      m_game->parseFen(k_testFenFilepath, k_kingVsKingAndBishopFenIndex));
+  EXPECT_TRUE(m_board->hasStalemateOccurred(Color::black));
+
+  // King vs. king and knight case
+  m_board->loadFromState(
+      m_game->parseFen(k_testFenFilepath, k_kingVsKingAndKnightFenIndex));
+  EXPECT_TRUE(m_board->hasStalemateOccurred(Color::black));
+
+  // King with bishop vs. king with bishop on same color
+  m_board->loadFromState(m_game->parseFen(
+      k_testFenFilepath, k_kingsWithBishopsOnSameColorFenIndex));
+  EXPECT_TRUE(m_board->hasStalemateOccurred(Color::black));
 }
 
-// std::cout << m_board->getCastleStatus()[0] << m_board->getCastleStatus()[1] << m_board->getCastleStatus()[2] << m_board->getCastleStatus()[3] << std::endl;
+TEST_F(TestBoard, FiftyMoveRule) {
+  // Starting position, but half move count is 2 away from 50
+  m_board->loadFromState(
+      m_game->parseFen(k_testFenFilepath, k_fiftyMoveRuleFenIndex));
+
+  // This function is usually only called once per player turn
+  // We can keep calling it to increment the half-move count
+  m_board->movePiece({1, 0}, {2, 2});
+  m_board->updateBoardState({1, 0}, {2, 2});
+  EXPECT_FALSE(
+      m_board->hasStalemateOccurred(Color::black)); // Half move count is now 49
+
+  m_board->movePiece({1, 7}, {2, 5});
+  m_board->updateBoardState({1, 7}, {2, 5});
+  EXPECT_TRUE(
+      m_board->hasStalemateOccurred(Color::white)); // Half move count is now 50
+
+  // An actual game would be over, but we can keep moving pieces
+  // After moving a pawn, the half move count will be reset to zero
+  m_board->movePiece({4, 1}, {4, 3});
+  m_board->updateBoardState({4, 1}, {4, 3});
+  EXPECT_FALSE(m_board->hasStalemateOccurred(Color::black));
+}
+
+TEST_F(TestBoard, EnPassant) {}
+
+// std::cout << m_board->getCastleStatus()[0] << m_board->getCastleStatus()[1]
+// << m_board->getCastleStatus()[2] << m_board->getCastleStatus()[3] <<
+// std::endl;
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
