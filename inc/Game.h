@@ -63,7 +63,6 @@ public:
   LumpedBoardAndGameState parseFen(const std::string filename,
                                    const int lineNumber);
 
-private:
   inline void setTurn(Color color) {
     if (color == Color::black) {
       m_whiteToMove = false;
@@ -72,6 +71,7 @@ private:
     }
   }
 
+private:
   // True if there is a game in progress
   bool m_inProgress = true;
 

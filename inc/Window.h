@@ -36,6 +36,15 @@ public:
     m_board.setComputerPlaying(isPlaying);
   }
 
+  inline void setTurn(Color color) {
+    m_game.setTurn(color);
+    m_board.refreshValidMoves();
+  }
+
+  inline void setComputerColor(Color color) {
+    m_computer.setColor(color);
+  }
+
 private:
   void stepSdlGame();
   void stepLegacyGame();
