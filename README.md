@@ -23,7 +23,6 @@ The following options can be passed as additional arguments when running the exe
 * Passing `--legacy` will enable legacy CLI mode with no SDL graphics (only supports 2-player)
 
 ## Remaining Work
-* Observe half-move rule
 * Investigate edge cases
 * Update unit tests for Board
 * FEN output of arbitrary board state
