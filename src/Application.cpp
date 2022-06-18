@@ -52,7 +52,7 @@ Application::Application(int argc, char **argv)
 
   // Passing "-b" as an additional argument sets the active player to black
   if (argumentPassed(argv, argv + argc, "-b")) {
-    m_window->setTurn(Color::black);
+    m_window->setTurn(Color::white);
     if (m_window->isComputerPlaying()) {
       m_window->setComputerColor(Color::white);
     }

@@ -10,7 +10,8 @@
 // Class to define the board state and manage updates to it
 // Responsible for checking move validity, handling special behavior like
 // check, promotion, etc., and rendering the board and pieces on the window
-// TODO: Refactor into two classes - maybe one responsible for SDL stuff
+// TODO: This class became way too big. Needs to be refactored into 3 or more
+// classes
 class Board {
 public:
   Board() = default;
