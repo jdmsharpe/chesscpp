@@ -290,9 +290,11 @@ bool Window::makeComputerMove() {
 
   const auto &bestMove = m_computer.minimaxRoot(computerColor);
 
-  std::cout << "The move was from: " << bestMove.first.first << " "
-            << bestMove.first.second << " to: " << bestMove.second.first << " "
-            << bestMove.second.second << std::endl;
+  if (k_verbose) {
+    std::cout << "The move was from: " << bestMove.first.first << " "
+              << bestMove.first.second << " to: " << bestMove.second.first
+              << " " << bestMove.second.second << std::endl;
+  }
 
   // This call is enforced because the function is responsible for the move in
   // some cases

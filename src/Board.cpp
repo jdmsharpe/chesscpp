@@ -95,6 +95,9 @@ void Board::loadGame() {
   m_pieces[0][k_pawnsPerSide + 5] = makePiece<Bishop>(Color::black, {5, 7});
   m_pieces[0][k_pawnsPerSide + 6] = makePiece<Queen>(Color::black, {3, 7});
   m_pieces[0][k_pawnsPerSide + 7] = makePiece<King>(Color::black, {4, 7});
+
+  m_pawnMovedOrPieceCaptured = false;
+  m_fiftyMoveRuleCount = 0;
 }
 
 void Board::loadFromState(const LumpedBoardAndGameState &state) {
@@ -131,6 +134,8 @@ void Board::loadFromState(const LumpedBoardAndGameState &state) {
 
   m_castleStatus = state.castleStatus;
   m_enPassantStatus = state.enPassantStatus;
+
+  m_fiftyMoveRuleCount = state.halfMoveNum;
 }
 
 void Board::cliDisplay(Color color) {
@@ -280,6 +285,8 @@ std::pair<size_t, size_t> Board::getIndexOfPiece(const Piece *piece) {
 }
 
 void Board::capturePiece(const Position &position) {
+  m_pawnMovedOrPieceCaptured = true;
+
   for (auto &side : m_pieces) {
     for (auto &piece : side) {
       CONTINUE_IF_NULL(piece);
@@ -849,6 +856,12 @@ void Board::storeValidMoves() {
       const auto &color = pieceToCheck->getColor();
       const auto &position = pieceToCheck->getPosition();
 
+      // Guard for positions out of bounds
+      if (position.first < 0 || position.second < 0 ||
+          position.first >= 8 || position.second >= 8) {
+        continue;
+      }
+
       if (k_verbose) {
         std::cout << std::endl;
         std::cout << pieceToCheck->getLetter() << std::endl;
@@ -1039,12 +1052,22 @@ bool Board::isKingCheckmated(Color color) {
 
 bool Board::hasStalemateOccurred(Color color) {
   // 50-move rule
-  // if (m_halfMoveNum >= 50) {
-  //   return true;
-  // }
+  if (m_pawnMovedOrPieceCaptured) {
+    m_fiftyMoveRuleCount = 0;
+  } else {
+    ++m_fiftyMoveRuleCount;
+  }
+
+  m_pawnMovedOrPieceCaptured = false;
+
+  if (m_fiftyMoveRuleCount >= 50) {
+    return true;
+  }
 
   // Dead positions
-  // if (oneSideHas({PieceType::bishop, }))
+  if (checkForDeadPosition()) {
+    return true;
+  }
 
   // Identical to checkmate function, but removes the requirement of the king
   // being in check
@@ -1106,6 +1129,8 @@ void Board::updateBoardState(const Position &start, const Position &end) {
 
   // Handle special events
   if (dynamic_cast<const Pawn *>(pieceThatMoved)) {
+    m_pawnMovedOrPieceCaptured = true;
+
     int lastRow = (color == Color::white) ? 7 : 0;
 
     // Pawn moved two spaces - need to store en passant square
@@ -1307,4 +1332,97 @@ void Board::undoMove(const Position &start, const Position &end, int depth) {
   }
 
   pieceToMove->setPosition(start);
+}
+
+bool Board::checkForDeadPosition() const {
+  auto onlyKingLeft = [this](Color color) {
+    int sideIndex = 0;
+
+    if (color == Color::white) {
+      sideIndex = 1;
+    }
+
+    if (m_pieces[sideIndex].size() == 1) {
+      if (static_cast<King *>(m_pieces[sideIndex].front().get())) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  auto kingAndOnePieceLeft = [this]<class T>(Color color) {
+    int sideIndex = 0;
+
+    if (color == Color::white) {
+      sideIndex = 1;
+    }
+
+    if (m_pieces[sideIndex].size() == 2) {
+      if ((static_cast<King *>(m_pieces[sideIndex].front().get()) &&
+           static_cast<T *>(m_pieces[sideIndex].back().get())) ||
+          (static_cast<T *>(m_pieces[sideIndex].front().get()) &&
+           static_cast<King *>(m_pieces[sideIndex].back().get()))) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  auto areBishopsOnSameColor = [this]() {
+    Position whiteBishopStartingPosition = {};
+    Position blackBishopStartingPosition = {};
+
+    for (const auto &side : m_pieces) {
+      for (const auto &piece : side) {
+        CONTINUE_IF_NULL(piece);
+
+        if (dynamic_cast<const Bishop *>(piece.get()) &&
+            piece->getColor() == Color::white) {
+          whiteBishopStartingPosition = piece->getStartingPosition();
+        } else if (dynamic_cast<const Bishop *>(piece.get()) &&
+                   piece->getColor() == Color::black) {
+          blackBishopStartingPosition = piece->getStartingPosition();
+        }
+      }
+    }
+
+    if ((whiteBishopStartingPosition.first % 2 == 0 &&
+         blackBishopStartingPosition.first % 2 != 0) ||
+        (whiteBishopStartingPosition.first % 2 != 0 &&
+         blackBishopStartingPosition.first % 2 == 0)) {
+      return true;
+    }
+
+    return false;
+  };
+
+  // First, single king cases
+  if (onlyKingLeft(Color::black) && onlyKingLeft(Color::white)) {
+    return true;
+  }
+
+  // Now cases with multiple pieces
+  if ((kingAndOnePieceLeft.template operator()<Bishop>(Color::white) &&
+       onlyKingLeft(Color::black)) ||
+      (kingAndOnePieceLeft.template operator()<Bishop>(Color::black) &&
+       onlyKingLeft(Color::white))) {
+    return true;
+  } else if ((kingAndOnePieceLeft.template operator()<Knight>(Color::white) &&
+              onlyKingLeft(Color::black)) ||
+             (kingAndOnePieceLeft.template operator()<Knight>(Color::black) &&
+              onlyKingLeft(Color::white))) {
+    return true;
+  } else if (kingAndOnePieceLeft.template operator()<Bishop>(Color::white) &&
+             kingAndOnePieceLeft.template operator()<Bishop>(Color::black)) {
+    // Only true if bishops are on the same color
+    return areBishopsOnSameColor();
+  } else if (kingAndOnePieceLeft.template operator()<Bishop>(Color::black) &&
+             kingAndOnePieceLeft.template operator()<Bishop>(Color::white)) {
+    // Only true if bishops are on the same color
+    return areBishopsOnSameColor();
+  }
+
+  return false;
 }

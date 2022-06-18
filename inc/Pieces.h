@@ -27,6 +27,8 @@ public:
 
   inline void setPosition(const Position &position) { m_position = position; }
 
+  inline Position getStartingPosition() const { return m_startingPosition; }
+
   inline Color getColor() const { return m_color; }
 
   inline void setColor(const Color &color) { m_color = color; }

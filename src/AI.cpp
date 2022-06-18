@@ -13,7 +13,7 @@ constexpr int k_knightValue = 300;
 constexpr int k_bishopValue = 300;
 constexpr int k_rookValue = 500;
 constexpr int k_queenValue = 900;
-constexpr int k_kingValue = 9000;
+constexpr int k_kingValue = 1000;
 
 constexpr int k_maxSquareIndex = 7;
 
@@ -103,10 +103,6 @@ template <typename it> it selectRandomly(it start, it end) {
   return selectRandomly(start, end, gen);
 }
 
-Color getOtherColor(Color color) {
-  return (color == Color::white) ? Color::black : Color::white;
-}
-
 auto addToAdvantage = [](const PieceContainer &container, int pieceValue,
                          const EvalTable &evalTable) {
   int advantage = 0;
@@ -176,12 +172,16 @@ std::pair<Position, Position> AI::minimaxRoot(Color max) {
 
     if (advantage >= bestAdvantage) {
       bestAdvantage = advantage;
-      std::cout << advantage << std::endl;
+      if (k_verbose) {
+        std::cout << advantage << std::endl;
+      }
       bestMove = std::make_pair(startingMoves[i].start, startingMoves[i].end);
     }
   }
 
-  std::cout << "The best move advantage was: " << bestAdvantage << std::endl;
+  if (k_verbose) {
+    std::cout << "The best move advantage was: " << bestAdvantage << std::endl;
+  }
 
   return bestMove;
 }
@@ -220,7 +220,7 @@ int AI::minimax(Color color, int depth, int alpha, int beta) {
     }
   } else {
     if (moves.size() == 0) {
-      if (m_board.isKingInCheck(getOtherColor(color))) {
+      if (m_board.isKingInCheck(color)) {
         return 9999;
       }
 

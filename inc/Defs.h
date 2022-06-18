@@ -110,4 +110,9 @@ struct FullMove {
   FullMove() {}
 };
 
+// For some reason this has to be static?
+Color static getOtherColor(Color color) {
+  return (color == Color::white) ? Color::black : Color::white;
+}
+
 #endif // DEFS_H
