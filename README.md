@@ -33,6 +33,11 @@ The following list describes all options can be passed as additional arguments w
 * `-w` - sets the player color to be white, and the computer player black
 * `--legacy` - enables legacy CLI mode with no SDL graphics (only supports two-player mode)
 
+## Runtime Options (all keyboard)
+* `p` - increases computer player search depth
+* `m` - decreases computer player search depth
+* `r` - starts a new game from the default starting position
+
 ## Remaining Work
 * Investigate edge cases - AI move generation #1 suspect
 * Update pawn promotion to be graphical interaction instead of CLI
@@ -40,6 +45,4 @@ The following list describes all options can be passed as additional arguments w
 * Add checkmate unit test
 * Add pawn promotion unit test (after update)
 * Add AI unit tests in new test file
-* FEN output of arbitrary board state
-* Make AI search depth toggleable during runtime, probably via keyboard
 * Web things...???
