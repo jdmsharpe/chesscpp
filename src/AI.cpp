@@ -17,6 +17,8 @@ constexpr int k_kingValue = 9000;
 
 constexpr int k_maxSquareIndex = 7;
 
+constexpr size_t k_mobilityMultiplier = 2;
+
 // Credits to https://www.chessprogramming.org/Simplified_Evaluation_Function
 using EvalTable = int[k_totalSquares / 8][k_totalSquares / 8];
 // Made last row 90 as that made more sense to me (guaranteed queen)
@@ -77,7 +79,7 @@ constexpr EvalTable k_queenEvalTable = {
     {-20, -10, -10, -5, -5, -10, -10, -20}
 };
 
-constexpr EvalTable k_kingEvalTable = {
+constexpr EvalTable k_kingOpeningEvalTable = {
     {20,  30,  10,  0,   0,   10,  30,  20},
     {20,  20,  0,   0,   0,   0,   20,  20},
     {-10, -20, -20, -20, -20, -20, -20, -10},
@@ -86,6 +88,17 @@ constexpr EvalTable k_kingEvalTable = {
     {-30, -40, -40, -50, -50, -40, -40, -30},
     {-30, -40, -40, -50, -50, -40, -40, -30},
     {-30, -40, -40, -50, -50, -40, -40, -30}
+};
+
+constexpr EvalTable k_kingEndgameEvalTable = {
+    {-50, -40, -30, -20, -20, -30,  -40, -50},
+    {-30, -20, -10, 0,   0,   -10,  -20, -30},
+    {-30, -10, 20,  30,  30,   20,  -10, -30},
+    {-30, -10, 30,  40,  40,   30,  -10, -30},
+    {-30, -10, 30,  40,  40,   30,  -10, -30},
+    {-30, -10, 20,  30,  30,   20,  -10, -30},
+    {-30, -30, 0,   0,   0,    0,   -30, -30},
+    {-50, -30, -30, -30, -30,  -30, -30, -50}
 };
 
 // Credits to first answer:
@@ -147,7 +160,13 @@ int AI::getAdvantage() {
   advantage += addToAdvantage(currentState.rooks, k_rookValue, k_rookEvalTable);
   advantage +=
       addToAdvantage(currentState.queens, k_queenValue, k_queenEvalTable);
-  advantage += addToAdvantage(currentState.kings, k_kingValue, k_kingEvalTable);
+  if (currentState.queens.empty()) {
+    advantage +=
+        addToAdvantage(currentState.kings, k_kingValue, k_kingEndgameEvalTable);
+  } else {
+    advantage +=
+        addToAdvantage(currentState.kings, k_kingValue, k_kingOpeningEvalTable);
+  }
 
   return advantage;
 }
@@ -194,6 +213,7 @@ int AI::minimax(Color color, int depth, int alpha, int beta) {
 
   m_board.refreshValidMoves();
   const auto &moves = m_board.getValidMovesFor(color);
+  const auto &opponentMoves = m_board.getValidMovesFor(color);
   int bestAdvantage = 0;
 
   if (color == m_color.value()) {
@@ -212,6 +232,10 @@ int AI::minimax(Color color, int depth, int alpha, int beta) {
     if (m_board.getFiftyMoveRuleCount() >= 50) {
       return 0;
     }
+
+    // Mobility is good
+    bestAdvantage += moves.size() * k_mobilityMultiplier;
+    bestAdvantage -= opponentMoves.size() * k_mobilityMultiplier;
 
     for (size_t i = 0; i < moves.size(); ++i) {
       const auto &moveToMake = moves[i];
@@ -238,6 +262,9 @@ int AI::minimax(Color color, int depth, int alpha, int beta) {
     if (m_board.getFiftyMoveRuleCount() >= 50) {
       return 0;
     }
+
+    bestAdvantage -= moves.size()* k_mobilityMultiplier;
+    bestAdvantage += opponentMoves.size() * k_mobilityMultiplier;
 
     for (size_t i = 0; i < moves.size(); ++i) {
       const auto &moveToMake = moves[i];

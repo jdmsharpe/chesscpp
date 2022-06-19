@@ -41,8 +41,12 @@ public:
     m_board.refreshValidMoves();
   }
 
-  inline void setComputerColor(Color color) {
-    m_computer.setColor(color);
+  inline void setComputerColor(Color color) { m_computer.setColor(color); }
+
+  inline std::string getActiveFilename() const { return m_activeFilename; }
+
+  inline void setActiveFilename(const std::string &filename) {
+    m_activeFilename = filename;
   }
 
 private:
@@ -52,9 +56,9 @@ private:
   bool makePlayerMove();
   bool makeComputerMove();
 
-  Board m_board;
-  Game m_game;
-  AI m_computer;
+  Board m_board = Board();
+  Game m_game = Game();
+  AI m_computer = AI(m_board);
 
   // True if legacy mode is enabled
   bool m_legacyMode = false;
@@ -84,6 +88,8 @@ private:
 
   // Parsed promotion choice to be applied
   PieceType m_promotionOutput = PieceType::none;
+
+  std::string m_activeFilename = "";
 };
 
 #endif // WINDOW_H
