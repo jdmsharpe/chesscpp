@@ -7,7 +7,7 @@
 // Class that represents a computer player that a user can play against
 class AI {
 public:
-  AI(Board& board) : m_board(board) {}
+  AI(Board &board) : m_board(board) {}
   ~AI() {}
 
   void reset();

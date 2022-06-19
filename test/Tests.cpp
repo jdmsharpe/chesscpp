@@ -13,6 +13,8 @@ constexpr int k_kingVsKingAndBishopFenIndex = 3;
 constexpr int k_kingVsKingAndKnightFenIndex = 4;
 constexpr int k_kingsWithBishopsOnSameColorFenIndex = 5;
 constexpr int k_fiftyMoveRuleFenIndex = 6;
+constexpr int k_enPassantFenIndex = 7;
+constexpr int k_inverseEnPassantFenIndex = 8;
 
 const std::bitset<k_numCastleOptions> k_bothSidesCastleRights =
     std::bitset<k_numCastleOptions>().set();
@@ -282,7 +284,49 @@ TEST_F(TestBoard, FiftyMoveRule) {
   EXPECT_FALSE(m_board->hasStalemateOccurred(Color::black));
 }
 
-TEST_F(TestBoard, EnPassant) {}
+TEST_F(TestBoard, EnPassant) {
+  // Black has a pawn ripe for en passant
+  m_board->loadFromState(m_game->parseFen(k_testFenFilepath, k_enPassantFenIndex));
+
+  // White pawns flank black's on both sides
+  // Both are able to capture via en passant
+  EXPECT_TRUE(m_board->isValidMove(Color::white, {0, 4}, {1, 5}, true));
+  EXPECT_TRUE(m_board->isValidMove(Color::white, {2, 4}, {1, 5}, true));
+
+  m_board->movePiece({0, 4}, {1, 5});
+  m_board->updateBoardState({0, 4}, {1, 5});
+
+  // Now white does something silly
+  m_board->movePiece({6, 1}, {6, 3});
+  m_board->updateBoardState({6, 1}, {6, 3});
+  EXPECT_EQ(m_board
+                ->getBoardAndGameState(m_game->whoseTurnIsIt(),
+                                       m_game->getHalfMoveCount(),
+                                       m_game->getMoveCount())
+                .enPassantStatus.value()
+                .second,
+            Position({6, 2}));
+
+  // Black's turn
+  EXPECT_TRUE(m_board->isValidMove(Color::black, {5, 3}, {6, 2}, true));
+  EXPECT_TRUE(m_board->isValidMove(Color::black, {7, 3}, {6, 2}, true));
+
+  m_board->movePiece({5, 3}, {6, 2});
+  m_board->updateBoardState({5, 3}, {6, 2});
+
+  // Now the en passant status is cleared
+  EXPECT_EQ(m_board
+                ->getBoardAndGameState(m_game->whoseTurnIsIt(),
+                                       m_game->getHalfMoveCount(),
+                                       m_game->getMoveCount())
+                .enPassantStatus,
+            std::nullopt);
+}
+
+TEST_F(TestBoard, InverseEnPassant) {
+  // m_board->loadFromState(
+  //     m_game->parseFen(k_testFenFilepath, k_inverseEnPassantFenIndex));
+}
 
 // std::cout << m_board->getCastleStatus()[0] << m_board->getCastleStatus()[1]
 // << m_board->getCastleStatus()[2] << m_board->getCastleStatus()[3] <<
