@@ -40,6 +40,5 @@ The following list describes all options can be passed as additional arguments w
 * Add checkmate unit test
 * Add pawn promotion unit test (after update)
 * Add AI unit tests in new test file
-* FEN output of arbitrary board state
 * Make AI search depth toggleable during runtime, probably via keyboard
 * Web things...???
