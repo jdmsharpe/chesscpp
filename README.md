@@ -2,7 +2,7 @@
 
 Chess program. Comes with three main modes:
 1. Chess with two players (default)
-2. Chess with one player and one computer player, accessed through `c` argument
+2. Chess with one player and one computer player, accessed through `-c` argument
 3. Legacy mode on CLI, accessed through `--legacy` argument
 
 The first two modes use SDL for a graphical interface, which is a library I'm familiar with from past projects.
