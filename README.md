@@ -28,6 +28,7 @@ The following list describes all options can be passed as additional arguments w
 * `-c` - starts a game with a computer player (computer player's default color is black)
 * `-l` - loads a board state from the `load.fen` file under `inc`
 * `-r` - randomizes the player's and computer player's colors
+* `-s` - enables saving the game states to .fen files. The filename format is `game_<Y-M-D-T>.fen`
 * `-v` - enables verbose/debugging mode
 * `-w` - sets the player color to be white, and the computer player black
 * `--legacy` - enables legacy CLI mode with no SDL graphics (only supports two-player mode)
