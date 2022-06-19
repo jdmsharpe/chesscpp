@@ -7,7 +7,7 @@ Chess program. Comes with three main modes:
 
 The first two modes use SDL for a graphical interface, which is a library I'm familiar with from past projects.
 
-The computer player uses a basic minimax algorithm implementation with a default search depth of 3 to evaluate future board positions. The depth can be incremented with `p` and decremented with `m`.
+The computer player uses a basic minimax algorithm implementation with a default search depth of 3 plies (half-moves) to evaluate future board positions. The depth can be incremented with `p` and decremented with `m`.
 
 Users can also choose their desired color against the computer player with `-w`, `-b`, or `-r` (white, black, and random, respectively). Note that these options are not supported in two-player mode.
 
