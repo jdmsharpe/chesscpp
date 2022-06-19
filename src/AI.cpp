@@ -6,8 +6,6 @@
 
 namespace {
 
-constexpr int k_minimaxDepth = 3;
-
 constexpr int k_pawnValue = 100;
 constexpr int k_knightValue = 300;
 constexpr int k_bishopValue = 300;
@@ -184,10 +182,10 @@ std::pair<Position, Position> AI::minimaxRoot(Color max) {
 
   for (size_t i = 0; i < startingMoves.size(); ++i) {
     const auto &moveToMake = startingMoves[i];
-    m_board.testMove(moveToMake.start, moveToMake.end, k_minimaxDepth);
+    m_board.testMove(moveToMake.start, moveToMake.end, m_difficulty);
     int advantage =
-        minimax(getOtherColor(max), k_minimaxDepth - 1, -10000, 10000);
-    m_board.undoMove(moveToMake.start, moveToMake.end, k_minimaxDepth);
+        minimax(getOtherColor(max), m_difficulty - 1, -10000, 10000);
+    m_board.undoMove(moveToMake.start, moveToMake.end, m_difficulty);
 
     if (advantage >= bestAdvantage) {
       bestAdvantage = advantage;
@@ -207,8 +205,9 @@ std::pair<Position, Position> AI::minimaxRoot(Color max) {
 
 int AI::minimax(Color color, int depth, int alpha, int beta) {
   if (depth == 0) {
-    int multiplier = (color == Color::white) ? -1 : 1;
-    return getAdvantage() * multiplier;
+    int colorMultiplier = (color == Color::white) ? -1 : 1;
+    int difficultyMultiplier = (m_difficulty % 2 == 0) ? -1 : 1;
+    return getAdvantage() * colorMultiplier * difficultyMultiplier;
   }
 
   m_board.refreshValidMoves();
