@@ -151,6 +151,14 @@ void Window::handleKeyboardInput(const SDL_KeyboardEvent &kbe) {
       m_computer.reset();
     }
   }
+
+  if (kbe.keysym.sym == SDLK_p) {
+    m_computer.setDifficulty(1);
+  }
+
+  if (kbe.keysym.sym == SDLK_m) {
+    m_computer.setDifficulty(-1);
+  }
 }
 
 void Window::stepGame() {
