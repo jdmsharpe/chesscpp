@@ -34,6 +34,8 @@ private:
 
   // True if legacy mode is enabled
   bool m_legacyMode = false;
+
+  bool m_saveGames = false;
 };
 
 #endif // APPLICATION_H

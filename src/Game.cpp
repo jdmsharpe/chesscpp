@@ -1,6 +1,7 @@
 #include "Game.h"
 
 #include <ctype.h>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 
@@ -145,7 +146,7 @@ LumpedBoardAndGameState Game::parseFen(const std::string filename,
         // multiple delimiters! Full credit to darune in
         // https://stackoverflow.com/questions/7621727/split-a-string-into-words-by-multiple-delimiters
         std::sregex_token_iterator first{line.begin(), line.end(), k_delimiters,
-                                        -1},
+                                         -1},
             last;
         std::vector<std::string> tokens = {first, last};
 
@@ -274,4 +275,158 @@ LumpedBoardAndGameState Game::parseFen(const std::string filename,
   ifs.close();
 
   return state;
+}
+
+void Game::writeToFen(const std::string filename,
+                      const LumpedBoardAndGameState &boardAndGameState) {
+  std::string line = "";
+  // Append to existing content
+  std::ofstream ofs(filename, std::ios::app);
+
+  std::vector<PiecesForFenStorage> piecesForOutput = {};
+  Position positionToAdd = {};
+  int emptySpaceCounter = 0;
+
+  auto positionMatch = [&positionToAdd](const PiecesForFenStorage &piece) {
+    if (positionToAdd == piece.position) {
+      return true;
+    }
+
+    return false;
+  };
+
+  if (ofs.is_open()) {
+    for (const auto &pawn : boardAndGameState.pawns) {
+      piecesForOutput.emplace_back(
+          pawn.first, PieceType::pawn,
+          Position({pawn.second.first, pawn.second.second}));
+    }
+    for (const auto &knight : boardAndGameState.knights) {
+      piecesForOutput.emplace_back(
+          knight.first, PieceType::knight,
+          Position({knight.second.first, knight.second.second}));
+    }
+    for (const auto &bishop : boardAndGameState.bishops) {
+      piecesForOutput.emplace_back(
+          bishop.first, PieceType::bishop,
+          Position({bishop.second.first, bishop.second.second}));
+    }
+    for (const auto &rook : boardAndGameState.rooks) {
+      piecesForOutput.emplace_back(
+          rook.first, PieceType::rook,
+          Position({rook.second.first, rook.second.second}));
+    }
+    for (const auto &queen : boardAndGameState.queens) {
+      piecesForOutput.emplace_back(
+          queen.first, PieceType::queen,
+          Position({queen.second.first, queen.second.second}));
+    }
+    for (const auto &king : boardAndGameState.kings) {
+      piecesForOutput.emplace_back(
+          king.first, PieceType::king,
+          Position({king.second.first, king.second.second}));
+    }
+
+    // Go through every square on board
+    for (int i = 0; i < 8; ++i) {
+      emptySpaceCounter = 0;
+      for (int j = 0; j < 8; ++j) {
+        positionToAdd = {j, 7 - i};
+
+        auto it = std::find_if(piecesForOutput.cbegin(), piecesForOutput.cend(),
+                               positionMatch);
+
+        if (it != piecesForOutput.cend()) {
+          if (emptySpaceCounter >= 1) {
+            line.push_back('0' + emptySpaceCounter);
+          }
+
+          emptySpaceCounter = -1;
+
+          if (it->type == PieceType::pawn) {
+            line.push_back((it->color == Color::white) ? 'P' : 'p');
+          } else if (it->type == PieceType::knight) {
+            line.push_back((it->color == Color::white) ? 'N' : 'n');
+          } else if (it->type == PieceType::bishop) {
+            line.push_back((it->color == Color::white) ? 'B' : 'b');
+          } else if (it->type == PieceType::rook) {
+            line.push_back((it->color == Color::white) ? 'R' : 'r');
+          } else if (it->type == PieceType::queen) {
+            line.push_back((it->color == Color::white) ? 'Q' : 'q');
+          } else if (it->type == PieceType::king) {
+            line.push_back((it->color == Color::white) ? 'K' : 'k');
+          } else {
+            // Type ???
+            continue;
+          }
+        }
+
+        ++emptySpaceCounter;
+
+        // if ()
+
+        if (j == 7) {
+          if (emptySpaceCounter >= 1) {
+            line.push_back('0' + emptySpaceCounter);
+          }
+        }
+      }
+      if (i != 7) {
+        line.push_back('/');
+      }
+    }
+
+    line.push_back(' ');
+    line.push_back((boardAndGameState.whoseTurn == Color::white) ? 'w' : 'b');
+
+    line.push_back(' ');
+    if (boardAndGameState.castleStatus.any()) {
+      if (boardAndGameState.castleStatus[k_whiteKingsideIndex]) {
+        line.push_back('K');
+      }
+      if (boardAndGameState.castleStatus[k_whiteQueensideIndex]) {
+        line.push_back('Q');
+      }
+      if (boardAndGameState.castleStatus[k_blackKingsideIndex]) {
+        line.push_back('k');
+      }
+      if (boardAndGameState.castleStatus[k_blackQueensideIndex]) {
+        line.push_back('q');
+      }
+    } else {
+      line.push_back('-');
+    }
+
+    line.push_back(' ');
+    if (boardAndGameState.enPassantStatus.has_value()) {
+      for (auto it = k_letterToIndex.begin(); it != k_letterToIndex.end();
+           ++it) {
+        if (it->second ==
+            boardAndGameState.enPassantStatus.value().second.first) {
+          if (std::islower(it->first)) {
+            line.push_back(it->first);
+          }
+        }
+      }
+      for (auto it = k_numberToIndex.begin(); it != k_numberToIndex.end();
+           ++it) {
+        if (it->second ==
+            boardAndGameState.enPassantStatus.value().second.second) {
+          line.push_back(it->first);
+        }
+      }
+    } else {
+      line.push_back('-');
+    }
+
+    line.push_back(' ');
+    line.push_back('0' + static_cast<int>(boardAndGameState.turnNum));
+    line.push_back(' ');
+    line.push_back('0' + static_cast<int>(boardAndGameState.halfMoveNum));
+    line.push_back('\n');
+
+    ofs << line;
+  }
+
+  ofs.close();
 }

@@ -63,6 +63,9 @@ public:
   LumpedBoardAndGameState parseFen(const std::string filename,
                                    const int lineNumber);
 
+  void writeToFen(const std::string filename,
+                  const LumpedBoardAndGameState &boardAndGameState);
+
   inline void setTurn(Color color) {
     if (color == Color::black) {
       m_whiteToMove = false;
@@ -72,6 +75,15 @@ public:
   }
 
 private:
+  struct PiecesForFenStorage {
+    Color color;
+    PieceType type;
+    Position position;
+
+    PiecesForFenStorage(Color color, PieceType type, Position position)
+        : color(color), type(type), position(position) {}
+  };
+
   // True if there is a game in progress
   bool m_inProgress = true;
 

@@ -1,6 +1,7 @@
 #include "Application.h"
 
 #include <chrono>
+#include <iomanip>
 
 namespace {
 
@@ -8,6 +9,8 @@ constexpr long k_counterMod = 10;
 
 const std::string k_fenFilename = "../chess/inc/load.fen";
 constexpr int k_firstFenIndex = 0;
+
+const std::string k_writeFenPrefix = "game";
 
 // Parse CLI arguments
 bool argumentPassed(char **start, char **end, const std::string &toFind) {
@@ -58,6 +61,23 @@ Application::Application(int argc, char **argv)
     }
   }
 
+  // Passing "-r" as an additional argument randomizes player and computer
+  // player's colors
+  if (argumentPassed(argv, argv + argc, "-r")) {
+    m_window->setTurn(Color::white);
+    if (m_window->isComputerPlaying()) {
+      // Make rand() call pseudo-nondeterministic
+      srand(time(NULL));
+      (rand() % 2) ? m_window->setComputerColor(Color::white)
+                   : m_window->setComputerColor(Color::black);
+    }
+  }
+
+  // Passing "-b" as an additional argument sets the active player to black
+  if (argumentPassed(argv, argv + argc, "-s")) {
+    m_saveGames = true;
+  }
+
   m_appState = AppState::GAME_IN_PROGRESS;
 }
 
@@ -71,6 +91,19 @@ int Application::run() {
   std::chrono::duration<double> diff;
   std::chrono::_V2::system_clock::time_point runStart;
   std::chrono::_V2::system_clock::time_point runEnd;
+
+  int resetCount = 0;
+
+  if (m_saveGames) {
+    auto in_time_t =
+        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::stringstream datetime;
+    datetime << "_" << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d-%X")
+             << resetCount << ".fen";
+
+    m_window->setActiveFilename(k_writeFenPrefix + datetime.str());
+    datetime.str(std::string());
+  }
 
   while (!quit) {
     runStart = std::chrono::system_clock::now();
@@ -89,7 +122,21 @@ int Application::run() {
           m_window->handleKeyboardInput(e.key);
           // TODO: Come up with a better way to do this
           if (e.key.keysym.sym == SDLK_r) {
+            ++resetCount;
             m_appState = AppState::GAME_IN_PROGRESS;
+
+            if (m_saveGames) {
+              auto in_time_t = std::chrono::system_clock::to_time_t(
+                  std::chrono::system_clock::now());
+              std::stringstream datetime;
+              datetime << "_"
+                       << std::put_time(std::localtime(&in_time_t),
+                                        "%Y-%m-%d-%X")
+                       << resetCount << ".fen";
+
+              m_window->setActiveFilename(k_writeFenPrefix + datetime.str());
+              datetime.str(std::string());
+            }
           }
           break;
         }

@@ -10,11 +10,11 @@ constexpr int k_dt = 16; // ms
 
 constexpr int k_whiteVerticalOffset = 7;
 
+const std::string k_writeFenFilename = "write.fen";
+
 } // namespace
 
-Window::Window(const bool isLegacyMode)
-    : m_board(Board()), m_game(Game()), m_computer(AI(m_board)),
-      m_legacyMode(isLegacyMode) {
+Window::Window(const bool isLegacyMode) : m_legacyMode(isLegacyMode) {
   if (!m_legacyMode) {
     open();
   }
@@ -227,6 +227,11 @@ void Window::stepSdlGame() {
   } else if (m_board.hasStalemateOccurred(m_game.whoseTurnIsItNot())) {
     m_game.endWithDraw();
   }
+
+  m_game.writeToFen(m_activeFilename,
+                    m_board.getBoardAndGameState(m_game.whoseTurnIsItNot(),
+                                                 m_game.getHalfMoveCount(),
+                                                 m_game.getMoveCount()));
 
   // When move is complete, turn is over
   m_game.switchPlayers();
