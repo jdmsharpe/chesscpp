@@ -14,7 +14,7 @@ constexpr int k_kingVsKingAndKnightFenIndex = 4;
 constexpr int k_kingsWithBishopsOnSameColorFenIndex = 5;
 constexpr int k_fiftyMoveRuleFenIndex = 6;
 constexpr int k_enPassantFenIndex = 7;
-constexpr int k_inverseEnPassantFenIndex = 8;
+constexpr int k_checkmateFenIndex = 8;
 
 const std::bitset<k_numCastleOptions> k_bothSidesCastleRights =
     std::bitset<k_numCastleOptions>().set();
@@ -296,6 +296,10 @@ TEST_F(TestBoard, EnPassant) {
   m_board->movePiece({0, 4}, {1, 5});
   m_board->updateBoardState({0, 4}, {1, 5});
 
+  // Check black's next move isn't yet possible
+  EXPECT_FALSE(m_board->isValidMove(Color::black, {5, 3}, {6, 2}, true));
+  EXPECT_FALSE(m_board->isValidMove(Color::black, {7, 3}, {6, 2}, true));
+
   // Now white does something silly
   m_board->movePiece({6, 1}, {6, 3});
   m_board->updateBoardState({6, 1}, {6, 3});
@@ -323,14 +327,29 @@ TEST_F(TestBoard, EnPassant) {
             std::nullopt);
 }
 
-TEST_F(TestBoard, InverseEnPassant) {
-  // m_board->loadFromState(
-  //     m_game->parseFen(k_testFenFilepath, k_inverseEnPassantFenIndex));
+TEST_F(TestBoard, SimpleCheckmate) {
+  m_board->loadFromState(
+      m_game->parseFen(k_testFenFilepath, k_checkmateFenIndex));
+
+  // White is in check, but not checkmated
+  EXPECT_TRUE(m_board->isKingInCheck(Color::white));
+  EXPECT_FALSE(m_board->isKingCheckmated(Color::white));
+
+  // Black is not in check
+  EXPECT_FALSE(m_board->isKingInCheck(Color::black));
+  EXPECT_FALSE(m_board->isKingCheckmated(Color::black));
+
+  // Whtie has two resposnes here, one of which leads to checkmate by rook
+  m_board->movePiece({7, 2}, {6, 2});
+  m_board->updateBoardState({7, 2}, {6, 2});
+
+  // Normally this would be called after each turn completion
+  m_board->refreshValidMoves();
+
+  EXPECT_TRUE(m_board->isKingInCheck(Color::black));
+  EXPECT_TRUE(m_board->isKingCheckmated(Color::black));
 }
 
-// std::cout << m_board->getCastleStatus()[0] << m_board->getCastleStatus()[1]
-// << m_board->getCastleStatus()[2] << m_board->getCastleStatus()[3] <<
-// std::endl;
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
