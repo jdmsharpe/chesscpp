@@ -73,9 +73,11 @@ Application::Application(int argc, char **argv)
     }
   }
 
-  // Passing "-b" as an additional argument sets the active player to black
+  // Passing "-s" as an additional argument enables saving game states to .fen
+  // files. The filename format is game_<Y-M-D-T>.fen
   if (argumentPassed(argv, argv + argc, "-s")) {
     m_saveGames = true;
+    m_window->setSaveGames(true);
   }
 
   m_appState = AppState::GAME_IN_PROGRESS;

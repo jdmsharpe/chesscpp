@@ -49,6 +49,10 @@ public:
     m_activeFilename = filename;
   }
 
+  inline void setSaveGames(const bool saveGames) {
+    m_saveGames = saveGames;
+  }
+
 private:
   void stepSdlGame();
   void stepLegacyGame();
@@ -90,6 +94,8 @@ private:
   PieceType m_promotionOutput = PieceType::none;
 
   std::string m_activeFilename = "";
+
+  bool m_saveGames = false;
 };
 
 #endif // WINDOW_H
