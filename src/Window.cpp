@@ -236,10 +236,12 @@ void Window::stepSdlGame() {
     m_game.endWithDraw();
   }
 
-  m_game.writeToFen(m_activeFilename,
-                    m_board.getBoardAndGameState(m_game.whoseTurnIsItNot(),
-                                                 m_game.getHalfMoveCount(),
-                                                 m_game.getMoveCount()));
+  if (m_saveGames) {
+    m_game.writeToFen(m_activeFilename,
+                      m_board.getBoardAndGameState(m_game.whoseTurnIsItNot(),
+                                                   m_game.getHalfMoveCount(),
+                                                   m_game.getMoveCount()));
+  }
 
   // When move is complete, turn is over
   m_game.switchPlayers();
