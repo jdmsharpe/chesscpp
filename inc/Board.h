@@ -49,7 +49,13 @@ public:
 
   inline bool pawnToPromote() const { return m_pawnToPromote.has_value(); }
 
+  // For legacy game
   bool promotePawn(const PieceType &piece);
+
+  // For SDL game
+  bool promotePawn(const Position &positionToPromoteTo);
+
+  void sdlDisplayPromotionOptions(Color color) const;
 
   void movePiece(const Position &start, const Position &end);
 
@@ -66,9 +72,7 @@ public:
     m_pieceToHighlight.reset();
   }
 
-  inline void clearOldKingHighlight() {
-    m_kingToHighlight.reset();
-  }
+  inline void clearOldKingHighlight() { m_kingToHighlight.reset(); }
 
   inline const std::vector<FullMove> &getAllValidMoves() const {
     return m_allValidMoves;
@@ -85,22 +89,18 @@ public:
 
   void undoMove(const Position &start, const Position &end, int depth = 10);
 
-  inline CastleStatus getCastleStatus() const {
-    return m_castleStatus;
-  }
+  inline CastleStatus getCastleStatus() const { return m_castleStatus; }
 
   inline void setComputerPlaying(const bool isPlaying) {
     m_isComputerPlaying = isPlaying;
   }
 
-  inline size_t getFiftyMoveRuleCount() const {
-    return m_fiftyMoveRuleCount;
-  }
+  inline size_t getFiftyMoveRuleCount() const { return m_fiftyMoveRuleCount; }
 
 private:
-  void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor);
+  void sdlDrawSquare(const Position &position, const SDL_Color &sdlColor) const;
 
-  void sdlDrawPiece(Color color, const Piece *piece, int verticalOffset);
+  void sdlDrawPiece(Color color, const Piece *piece, int verticalOffset) const;
 
   std::pair<size_t, size_t> getIndexOfPiece(const Piece *piece);
 
