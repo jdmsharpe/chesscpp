@@ -41,5 +41,5 @@ The following list describes all options can be passed as additional arguments w
 ## Remaining Work
 * Investigate edge cases - AI move generation #1 suspect
 * Add pawn promotion unit test
+* Add other Board unit tests
 * Add AI unit tests in new test file
-* Web things...???
