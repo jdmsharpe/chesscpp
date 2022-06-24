@@ -201,6 +201,8 @@ void Window::stepLegacyGame() {
       }
     }
 
+    m_board.refreshValidMoves();
+
     if (m_board.isKingCheckmated(m_game.whoseTurnIsItNot())) {
       m_game.endWithVictory();
     } else if (m_board.hasStalemateOccurred(m_game.whoseTurnIsItNot())) {
