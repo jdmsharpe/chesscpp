@@ -84,18 +84,22 @@ void Window::render() {
   SDL_SetRenderDrawColor(m_sdlRenderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(m_sdlRenderer);
 
-  if (m_isComputerPlaying) {
-    // Don't need to show board from computer's perspective
-    RETURN_IF_VALID(!m_computer.getColor().has_value());
+  if (m_board.pawnToPromote()) {
+    m_board.sdlDisplayPromotionOptions(m_game.whoseTurnIsItNot());
+  } else {
+    if (m_isComputerPlaying) {
+      // Don't need to show board from computer's perspective
+      RETURN_IF_VALID(!m_computer.getColor().has_value());
 
-    if (m_game.whoseTurnIsIt() == m_computer.getColor().value()) {
-      m_board.sdlDisplay(m_game.whoseTurnIsItNot());
+      if (m_game.whoseTurnIsIt() == m_computer.getColor().value()) {
+        m_board.sdlDisplay(m_game.whoseTurnIsItNot());
+      } else {
+        m_board.sdlDisplay(m_game.whoseTurnIsIt());
+      }
+
     } else {
       m_board.sdlDisplay(m_game.whoseTurnIsIt());
     }
-
-  } else {
-    m_board.sdlDisplay(m_game.whoseTurnIsIt());
   }
 
   SDL_RenderPresent(m_sdlRenderer);
@@ -214,6 +218,19 @@ void Window::stepSdlGame() {
     m_board.highlightKingInCheck(m_game.whoseTurnIsIt());
   }
 
+  // Unfortunately, we have to handle player promotion here
+  // or we would have to call render() twice
+  // TODO: Figure out if there's a way to refactor pawn
+  // promotion to live under makePlayerMove()
+  if (m_board.pawnToPromote()) {
+    if (!m_board.promotePawn(m_clickedPositionQueue.front())) {
+      if (m_clickedPositionQueue.size() > 0) {
+        m_clickedPositionQueue.pop();
+      }
+      return;
+    }
+  }
+
   if (m_isComputerPlaying) {
     if (m_game.whoseTurnIsIt() != m_computer.getColor()) {
       if (!makePlayerMove()) {
@@ -287,15 +304,6 @@ bool Window::makePlayerMove() {
     m_board.movePiece(firstPosition, secondPosition);
     m_board.updateBoardState(firstPosition, secondPosition);
 
-    while (m_board.pawnToPromote()) {
-      m_game.outputPromotionRules();
-      std::cin >> m_promotionInput;
-      if (m_game.parsePromotion(m_promotionInput, m_promotionOutput)) {
-        m_board.promotePawn(m_promotionOutput);
-        break;
-      }
-    }
-
     m_board.refreshValidMoves();
 
     return true;
@@ -307,11 +315,6 @@ bool Window::makePlayerMove() {
 }
 
 bool Window::makeComputerMove() {
-  // Simple sleep to not make moves almost instantaneous
-  // Can probably perform this some other way but this works for now
-  // TODO: Has a bug where computer's king doesn't highlight when in check
-  // std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
   if (!m_computer.getColor().has_value()) {
     return false;
   }

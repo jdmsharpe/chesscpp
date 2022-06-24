@@ -32,6 +32,8 @@ constexpr int k_xQueenOffset = 105;
 constexpr int k_xKingOffset = 0;
 constexpr int k_xKingAdditionalOffset = 2;
 
+constexpr int k_xPromotionOffset = 2;
+
 constexpr std::array<Position, 8> k_potentialKnightPositions = {
     {{2, 1}, {2, -1}, {-2, -1}, {-2, 1}, {1, 2}, {1, -2}, {-1, -2}, {-1, 2}}};
 
@@ -216,7 +218,7 @@ void Board::sdlDisplay(Color color) {
   }
 }
 
-void Board::sdlDrawSquare(const Position &position, const SDL_Color &sdlColor) {
+void Board::sdlDrawSquare(const Position &position, const SDL_Color &sdlColor) const {
   SDL_Rect square;
   square.w = k_squareWidth;
   square.h = k_squareHeight;
@@ -228,7 +230,7 @@ void Board::sdlDrawSquare(const Position &position, const SDL_Color &sdlColor) {
   SDL_RenderFillRect(m_renderer, &square);
 }
 
-void Board::sdlDrawPiece(Color color, const Piece *piece, int verticalOffset) {
+void Board::sdlDrawPiece(Color color, const Piece *piece, int verticalOffset) const {
   RETURN_IF_NULL(piece);
 
   int pieceXOffset = 0;
@@ -274,6 +276,58 @@ void Board::sdlDrawPiece(Color color, const Piece *piece, int verticalOffset) {
       .h = k_pieceHeight};
 
   SDL_RenderCopy(m_renderer, m_pieceImageTexture, &pieceBox, &screenBox);
+}
+
+void Board::sdlDisplayPromotionOptions(Color color) const {
+  int verticalOffset = 0;
+
+  if (color == Color::white) {
+    verticalOffset = 7;
+  }
+
+  // Draw board
+  for (int i = 0; i < 8; ++i) {
+    for (int j = 0; j < 8; ++j) {
+      ((i + j) % 2 == 0)
+          ? sdlDrawSquare({std::abs(verticalOffset - j), i}, k_evenColor)
+          : sdlDrawSquare({std::abs(verticalOffset - j), i}, k_oddColor);
+    }
+  }
+
+  int allPiecesYOffset = 0;
+
+  if (color == Color::black) {
+    // Black is in top half of image
+    allPiecesYOffset += k_pieceHeight;
+  }
+
+  std::array<SDL_Rect, 4> pieceBoxes = {SDL_Rect({.x = k_xKnightOffset,
+                                                  .y = allPiecesYOffset,
+                                                  .w = k_pieceWidth,
+                                                  .h = k_pieceHeight}),
+                                        SDL_Rect({.x = k_xBishopOffset,
+                                                  .y = allPiecesYOffset,
+                                                  .w = k_pieceWidth,
+                                                  .h = k_pieceHeight}),
+                                        SDL_Rect({.x = k_xRookOffset,
+                                                  .y = allPiecesYOffset,
+                                                  .w = k_pieceWidth,
+                                                  .h = k_pieceHeight}),
+                                        SDL_Rect({.x = k_xQueenOffset,
+                                                  .y = allPiecesYOffset,
+                                                  .w = k_pieceWidth,
+                                                  .h = k_pieceHeight})};
+
+  for (size_t i = 0; i < pieceBoxes.size(); ++i) {
+    SDL_Rect screenBox = {
+        .x = (static_cast<int>(k_xPromotionOffset + i) * k_screenBoxSize) -
+             k_screenBoxOffset,
+        .y = -k_screenBoxOffset,
+        .w = k_pieceWidth,
+        .h = k_pieceHeight};
+
+    SDL_RenderCopy(m_renderer, m_pieceImageTexture, &pieceBoxes[i], &screenBox);
+  }
 }
 
 Piece *Board::getPieceAt(const Position &position) {
@@ -1136,10 +1190,42 @@ bool Board::promotePawn(const PieceType &piece) {
   return true;
 }
 
+bool Board::promotePawn(const Position &positionToPromoteTo) {
+  if (!m_pawnToPromote.has_value()) {
+    // Should never happen
+    return false;
+  }
+
+  const Position position = m_pawnToPromote.value();
+  auto *pawnToPromote = getPieceAt(position);
+
+  // Figure out where in container the pawn is so we can reset the pointer
+  const auto &index = getIndexOfPiece(pawnToPromote);
+
+  int verticalOffset = 0;
+
+  if (pawnToPromote->getColor() == Color::black) {
+    verticalOffset = 7;
+  }
+
+  if (positionToPromoteTo == Position({2, verticalOffset})) {
+    promotePawn(PieceType::knight);
+  } else if (positionToPromoteTo == Position({3, verticalOffset})) {
+    promotePawn(PieceType::bishop);
+  } else if (positionToPromoteTo == Position({4, verticalOffset})) {
+    promotePawn(PieceType::rook);
+  } else if (positionToPromoteTo == Position({5, verticalOffset})) {
+    promotePawn(PieceType::queen);
+  } else {
+    return false;
+  }
+
+  return true;
+}
+
 void Board::updateBoardState(const Position &start, const Position &end) {
-  // Clear board events that are only active for a single turn
+  // Clear en passant each turn
   m_enPassantStatus.reset();
-  m_pawnToPromote.reset();
 
   const auto *pieceThatMoved = getPieceAt(end);
 
