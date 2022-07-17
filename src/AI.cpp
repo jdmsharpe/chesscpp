@@ -15,7 +15,7 @@ constexpr int k_kingValue = 9000;
 
 constexpr int k_maxSquareIndex = 7;
 
-constexpr size_t k_mobilityMultiplier = 2;
+constexpr size_t k_mobilityMultiplier = 3;
 
 // Credits to https://www.chessprogramming.org/Simplified_Evaluation_Function
 using EvalTable = int[k_totalSquares / 8][k_totalSquares / 8];
