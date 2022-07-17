@@ -49,9 +49,7 @@ public:
     m_activeFilename = filename;
   }
 
-  inline void setSaveGames(const bool saveGames) {
-    m_saveGames = saveGames;
-  }
+  inline void setSaveGames(const bool saveGames) { m_saveGames = saveGames; }
 
 private:
   void stepSdlGame();

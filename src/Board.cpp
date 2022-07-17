@@ -189,25 +189,22 @@ void Board::sdlDisplay(Color color) {
   // Highlight piece that was clicked, if any
   if (m_pieceToHighlight.has_value()) {
     const auto &position = m_pieceToHighlight.value();
-    sdlDrawSquare(
-        {position.first, std::abs(verticalOffset - position.second)},
-        k_selectedPieceColor);
+    sdlDrawSquare({position.first, std::abs(verticalOffset - position.second)},
+                  k_selectedPieceColor);
   }
 
   // Highlight valid moves for piece that was clicked, if any
   for (size_t i = 0; i < m_movesToHighlight.size(); ++i) {
     const auto &position = m_movesToHighlight[i];
-    sdlDrawSquare(
-        {position.first, std::abs(verticalOffset - position.second)},
-        k_movementOptionColor);
+    sdlDrawSquare({position.first, std::abs(verticalOffset - position.second)},
+                  k_movementOptionColor);
   }
 
   // Highlights king's square with a warning color if in check
   if (m_kingToHighlight.has_value()) {
     const auto &position = m_kingToHighlight.value();
-    sdlDrawSquare(
-        {position.first, std::abs(verticalOffset - position.second)},
-        k_checkColor);
+    sdlDrawSquare({position.first, std::abs(verticalOffset - position.second)},
+                  k_checkColor);
   }
 
   // Render all pieces
@@ -218,7 +215,8 @@ void Board::sdlDisplay(Color color) {
   }
 }
 
-void Board::sdlDrawSquare(const Position &position, const SDL_Color &sdlColor) const {
+void Board::sdlDrawSquare(const Position &position,
+                          const SDL_Color &sdlColor) const {
   SDL_Rect square;
   square.w = k_squareWidth;
   square.h = k_squareHeight;
@@ -230,7 +228,8 @@ void Board::sdlDrawSquare(const Position &position, const SDL_Color &sdlColor) c
   SDL_RenderFillRect(m_renderer, &square);
 }
 
-void Board::sdlDrawPiece(Color color, const Piece *piece, int verticalOffset) const {
+void Board::sdlDrawPiece(Color color, const Piece *piece,
+                         int verticalOffset) const {
   RETURN_IF_NULL(piece);
 
   int pieceXOffset = 0;
@@ -931,8 +930,8 @@ void Board::storeValidMoves() {
       const auto &position = pieceToCheck->getPosition();
 
       // Guard for positions out of bounds
-      if (position.first < 0 || position.second < 0 ||
-          position.first >= 8 || position.second >= 8) {
+      if (position.first < 0 || position.second < 0 || position.first >= 8 ||
+          position.second >= 8) {
         continue;
       }
 
