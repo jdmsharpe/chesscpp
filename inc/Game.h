@@ -4,7 +4,7 @@
 #include "Defs.h"
 
 // Class to define the game state
-// Handles turns and game completion, and is 
+// Handles turns and game completion, and is
 // responsible for parsing moves and FEN
 class Game {
 public:

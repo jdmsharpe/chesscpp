@@ -17,6 +17,8 @@ constexpr int k_maxSquareIndex = 7;
 
 constexpr size_t k_mobilityMultiplier = 3;
 
+// clang-format off
+
 // Credits to https://www.chessprogramming.org/Simplified_Evaluation_Function
 using EvalTable = int[k_totalSquares / 8][k_totalSquares / 8];
 // Made last row 90 as that made more sense to me (guaranteed queen)
@@ -99,6 +101,8 @@ constexpr EvalTable k_kingEndgameEvalTable = {
     {-50, -30, -30, -30, -30,  -30, -30, -50}
 };
 
+// clang-format on
+
 // Credits to first answer:
 // https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
 template <typename it, typename RandomGenerator>
@@ -141,9 +145,7 @@ auto addToAdvantage = [](const PieceContainer &container, int pieceValue,
 
 } // namespace
 
-void AI::reset() {
-  m_color = Color::black;
-}
+void AI::reset() { m_color = Color::black; }
 
 int AI::getAdvantage() {
   const auto &currentState = m_board.getBoardAndGameState(m_color.value());
@@ -262,7 +264,7 @@ int AI::minimax(Color color, int depth, int alpha, int beta) {
       return 0;
     }
 
-    bestAdvantage -= moves.size()* k_mobilityMultiplier;
+    bestAdvantage -= moves.size() * k_mobilityMultiplier;
     bestAdvantage += opponentMoves.size() * k_mobilityMultiplier;
 
     for (size_t i = 0; i < moves.size(); ++i) {
