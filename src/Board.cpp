@@ -2,7 +2,7 @@
 
 namespace {
 
-const std::string k_pieceImageFilepath = "../chess/inc/pieces.png";
+const std::string k_pieceImageFilepath = "../chesscpp/inc/pieces.png";
 
 constexpr int k_pawnsPerSide = k_totalPieces / 4;
 
