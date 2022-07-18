@@ -100,6 +100,7 @@ void Board::loadGame() {
 
   m_pawnMovedOrPieceCaptured = false;
   m_fiftyMoveRuleCount = 0;
+  m_castleStatus.set();
 }
 
 void Board::loadFromState(const LumpedBoardAndGameState &state) {
