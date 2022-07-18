@@ -7,7 +7,7 @@ namespace {
 
 constexpr long k_counterMod = 10;
 
-const std::string k_fenFilename = "../chess/inc/load.fen";
+const std::string k_fenFilename = "../chesscpp/inc/load.fen";
 constexpr int k_firstFenIndex = 0;
 
 const std::string k_writeFenPrefix = "game";
