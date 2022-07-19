@@ -16,7 +16,10 @@ constexpr SDL_Color k_movementOptionColor = SDL_Color({0, 255, 0, 128});
 constexpr SDL_Color k_checkColor = SDL_Color({255, 0, 0, 128});
 // Yellow
 constexpr SDL_Color k_selectedPieceColor = SDL_Color({255, 255, 0, 128});
-;
+// Purple
+constexpr SDL_Color k_blackLastMoveColor = SDL_Color({86, 29, 94, 100});
+// Orange
+constexpr SDL_Color k_whiteLastMoveColor = SDL_Color({244, 128, 55, 100});
 
 constexpr int k_pieceWidth = 105;
 constexpr int k_pieceHeight = 105;
@@ -192,6 +195,20 @@ void Board::sdlDisplay(Color color) {
     const auto &position = m_pieceToHighlight.value();
     sdlDrawSquare({position.first, std::abs(verticalOffset - position.second)},
                   k_selectedPieceColor);
+  }
+
+  // Highlight last black piece that moved
+  if (m_blackLastMoveHighlight.has_value()) {
+    const auto &position = m_blackLastMoveHighlight.value();
+    sdlDrawSquare({position.first, std::abs(verticalOffset - position.second)},
+                  k_blackLastMoveColor);
+  }
+
+  // Highlight last white piece that moved
+  if (m_whiteLastMoveHighlight.has_value()) {
+    const auto &position = m_whiteLastMoveHighlight.value();
+    sdlDrawSquare({position.first, std::abs(verticalOffset - position.second)},
+                  k_whiteLastMoveColor);
   }
 
   // Highlight valid moves for piece that was clicked, if any
@@ -1232,6 +1249,13 @@ void Board::updateBoardState(const Position &start, const Position &end) {
   RETURN_IF_NULL(pieceThatMoved);
 
   Color color = pieceThatMoved->getColor();
+
+  // Clear last move highlight for that color and set to the piece's new position
+  if (color == Color::black) {
+    m_blackLastMoveHighlight = pieceThatMoved->getPosition();
+  } else {
+    m_whiteLastMoveHighlight = pieceThatMoved->getPosition();
+  }
 
   // Handle special events
   if (dynamic_cast<const Pawn *>(pieceThatMoved)) {

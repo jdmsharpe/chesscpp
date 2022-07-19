@@ -144,6 +144,12 @@ private:
   // Piece square to highlight if clicked
   std::optional<Position> m_pieceToHighlight = std::nullopt;
 
+  // Black's last move to highlight
+  std::optional<Position> m_blackLastMoveHighlight = std::nullopt;
+
+  // White's last move to highlight
+  std::optional<Position> m_whiteLastMoveHighlight = std::nullopt;
+
   // King square to highlight if in check
   std::optional<Position> m_kingToHighlight = std::nullopt;
 
