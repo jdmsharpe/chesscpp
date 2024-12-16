@@ -16,9 +16,9 @@ Users can also choose their desired color against the computer player with `-w`,
 ## Build Instructions
 1. Requires cmake, SDL2, and SDL2_Image: `sudo apt-get install cmake libsdl2-dev libsdl2-image-dev`
 2. Clone repo
-3. In the same directory as the cloned repo, create a build folder: `mkdir chess_build`
-4. `cd chess_build`
-5. `cmake ../chess`
+3. In the same directory as the cloned repo, create a build folder: `mkdir chesscpp_build`
+4. `cd chesscpp_build`
+5. `cmake ../chesscpp`
 6. `cmake --build .`
 7. `./chess`
 
