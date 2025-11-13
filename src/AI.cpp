@@ -214,7 +214,7 @@ int AI::minimax(Color color, int depth, int alpha, int beta) {
 
   m_board.refreshValidMoves();
   const auto &moves = m_board.getValidMovesFor(color);
-  const auto &opponentMoves = m_board.getValidMovesFor(color);
+  const auto &opponentMoves = m_board.getValidMovesFor(getOtherColor(color));
   int bestAdvantage = 0;
 
   if (color == m_color.value()) {
