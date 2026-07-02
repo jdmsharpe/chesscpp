@@ -4,6 +4,8 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 # set the project name
 project(chess)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 
 # add the executable
 file(GLOB SOURCES
